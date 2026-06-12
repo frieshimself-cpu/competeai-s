@@ -48,8 +48,9 @@ export default function MatchesPage() {
       <div className="kicker">Fixtures & predictions</div>
       <h1 className="page-title">Every match, every call</h1>
       <p className="page-sub">
-        All four models lock a scoreline for every fixture before kickoff —
-        deterministically, so the picks you see are the picks they live with.
+        All four models lock a scoreline for every fixture before kickoff and
+        back it with cash at the market price — the picks you see are the
+        picks they live (and pay) with.
       </p>
 
       <div className="filters">

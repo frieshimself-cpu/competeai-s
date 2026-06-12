@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { MODEL_MAP } from "@/lib/models";
 import {
@@ -8,16 +9,18 @@ import {
   cumulativeSeries,
   POINTS,
 } from "@/lib/scoring";
+import { betFor, fmtMoney, START_BANKROLL } from "@/lib/betting";
 import { team } from "@/lib/teams";
 import { ModelAvatar } from "@/components/ModelAvatar";
 import { FormDots } from "@/components/FormDots";
-import { PointsChart } from "@/components/PointsChart";
+import { RaceChart } from "@/components/PointsChart";
 import { fmtKickoff } from "@/components/MatchCard";
 
 export default function LeaderboardPage() {
-  const { hydrated, matches, resultFor } = useStore();
+  const { hydrated, matches, resultFor, betting } = useStore();
+  const [view, setView] = useState<"bankroll" | "points">("bankroll");
 
-  if (!hydrated) return <div className="skel">Tallying the points…</div>;
+  if (!hydrated) return <div className="skel">Counting the money…</div>;
 
   const standings = computeStandings(matches, resultFor);
   const { matches: done, series } = cumulativeSeries(matches, resultFor);
@@ -29,8 +32,8 @@ export default function LeaderboardPage() {
       <h1 className="page-title">Leaderboard</h1>
       <p className="page-sub">
         {done.length === 0
-          ? "No results scored yet — the table fills in as real World Cup results are entered in Admin."
-          : `Scored across ${done.length} completed ${done.length === 1 ? "match" : "matches"}. Exact scorelines are worth ${POINTS.exact}, right goal difference ${POINTS.gd}, right outcome ${POINTS.outcome}.`}
+          ? "No results yet — bankrolls and points fill in as real World Cup results land."
+          : `Scored across ${done.length} completed ${done.length === 1 ? "match" : "matches"}. Exact scorelines pay ${POINTS.exact} points, right goal difference ${POINTS.gd}, right outcome ${POINTS.outcome} — and every pick carries a cash stake at market odds.`}
       </p>
 
       <div className="card table-card" style={{ marginTop: 24 }}>
@@ -38,11 +41,13 @@ export default function LeaderboardPage() {
           <thead>
             <tr>
               <th>Model</th>
+              <th>Bankroll</th>
+              <th>P/L</th>
+              <th>ROI</th>
               <th>Pts</th>
               <th>Exact (+5)</th>
               <th>GD (+3)</th>
               <th>Outcome (+2)</th>
-              <th>Missed</th>
               <th>Accuracy</th>
               <th>Last 5</th>
             </tr>
@@ -50,6 +55,7 @@ export default function LeaderboardPage() {
           <tbody>
             {standings.map((s, i) => {
               const meta = MODEL_MAP[s.model];
+              const w = betting.walletOf[s.model];
               return (
                 <tr key={s.model}>
                   <td>
@@ -63,11 +69,17 @@ export default function LeaderboardPage() {
                       {i === 0 && done.length > 0 && <span title="League leader">👑</span>}
                     </div>
                   </td>
-                  <td className="pts">{s.points}</td>
+                  <td className="pts">{fmtMoney(w.bankroll)}</td>
+                  <td className={w.profit > 0 ? "money-up" : w.profit < 0 ? "money-down" : ""}>
+                    {fmtMoney(w.profit, true)}
+                  </td>
+                  <td className={w.roi > 0 ? "money-up" : w.roi < 0 ? "money-down" : ""}>
+                    {w.staked ? `${w.roi > 0 ? "+" : ""}${w.roi}%` : "—"}
+                  </td>
+                  <td style={{ fontWeight: 800 }}>{s.points}</td>
                   <td>{s.exact}</td>
                   <td>{s.gd}</td>
                   <td>{s.outcome}</td>
-                  <td>{s.miss}</td>
                   <td>{s.scored ? `${s.accuracy}%` : "—"}</td>
                   <td>
                     <FormDots last5={s.last5} />
@@ -78,9 +90,39 @@ export default function LeaderboardPage() {
           </tbody>
         </table>
       </div>
+      <p className="faint tiny" style={{ marginTop: 8 }}>
+        League rank is decided by points. Bankrolls show what each model&apos;s
+        conviction is worth — everyone bought in for {fmtMoney(START_BANKROLL)}.
+      </p>
 
-      <h2 className="section-title">The race</h2>
-      <PointsChart matches={done} series={series} />
+      <h2 className="section-title">
+        The race
+        <span className="hint" style={{ display: "inline-flex", gap: 6 }}>
+          <button className={`fpill ${view === "bankroll" ? "on" : ""}`} onClick={() => setView("bankroll")}>
+            💰 Bankroll
+          </button>
+          <button className={`fpill ${view === "points" ? "on" : ""}`} onClick={() => setView("points")}>
+            League points
+          </button>
+        </span>
+      </h2>
+      {view === "bankroll" ? (
+        <RaceChart
+          count={betting.settledMatches.length}
+          series={betting.bankrollSeries}
+          fmt={(v) => fmtMoney(v)}
+          baseline={START_BANKROLL}
+          caption="bankroll after each settled match → (kickoff order)"
+        />
+      ) : (
+        <RaceChart
+          count={done.length}
+          series={series}
+          fmt={(v) => String(Math.round(v))}
+          zeroFloor
+          caption="cumulative league points → (kickoff order)"
+        />
+      )}
 
       <h2 className="section-title">Best calls so far</h2>
       {calls.length === 0 ? (
@@ -89,13 +131,19 @@ export default function LeaderboardPage() {
         <div className="grid2">
           {calls.map((c, i) => {
             const meta = MODEL_MAP[c.model];
+            const bet = betFor(betting, c.match.id, c.model);
             return (
               <div className="card" key={i}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
                   <ModelAvatar meta={meta} size="md" />
                   <b>{meta.name}</b>
-                  <span className={`pill ${c.points === 5 ? "gold" : "green"}`} style={{ marginLeft: "auto" }}>
-                    +{c.points} pts{c.upset ? " · upset called" : ""}
+                  <span style={{ marginLeft: "auto", display: "inline-flex", gap: 6 }}>
+                    {bet && bet.status === "won" && (
+                      <span className="pill green">cashed {fmtMoney(bet.profit, true)}</span>
+                    )}
+                    <span className={`pill ${c.points === 5 ? "gold" : "green"}`}>
+                      +{c.points} pts{c.upset ? " · upset called" : ""}
+                    </span>
                   </span>
                 </div>
                 <div className="small">
@@ -108,6 +156,9 @@ export default function LeaderboardPage() {
                   <b>
                     {c.result.homeGoals}–{c.result.awayGoals}
                   </b>
+                  {bet && bet.status === "won" && (
+                    <> with {fmtMoney(bet.stake)} riding at {bet.odds.toFixed(2)}</>
+                  )}
                   .
                 </div>
                 <div className="muted small" style={{ marginTop: 6 }}>

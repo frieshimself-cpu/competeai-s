@@ -13,6 +13,16 @@ export interface Personality {
   confShift: number;
 }
 
+export interface BettingStyle {
+  /** multiplier on the Kelly criterion stake (1 = full Kelly) */
+  kelly: number;
+  /** minimum fraction of bankroll wagered on every match */
+  minFrac: number;
+  /** hard cap as a fraction of bankroll */
+  maxFrac: number;
+  blurb: string;
+}
+
 export interface ModelMeta {
   id: ModelId;
   name: string;
@@ -23,6 +33,7 @@ export interface ModelMeta {
   tagline: string;
   strategy: string;
   p: Personality;
+  betting: BettingStyle;
 }
 
 export const MODELS: ModelMeta[] = [
@@ -37,6 +48,12 @@ export const MODELS: ModelMeta[] = [
     strategy:
       "Grok treats consensus as a contrarian indicator. It flattens the odds, backs live underdogs, and forecasts goals — lots of them. When it hits an exact scoreline nobody saw coming it banks 5 points; when it doesn't, it would like you to know it was joking anyway.",
     p: { upset: 1.45, drawBias: 0.78, goals: 1.18, hostEdge: 0.8, confShift: 8 },
+    betting: {
+      kelly: 1.6,
+      minFrac: 0.05,
+      maxFrac: 0.28,
+      blurb: "Over-Kelly degenerate. Sees a longshot it believes in and slams a quarter of the roll on it.",
+    },
   },
   {
     id: "chatgpt",
@@ -49,6 +66,12 @@ export const MODELS: ModelMeta[] = [
     strategy:
       "ChatGPT plays it straight down the middle: squad depth, recent form, tournament pedigree, all weighted evenly. It rarely makes a wild call, which means fewer 5-point exacts but a steady drumbeat of correct outcomes. The index fund of football punditry.",
     p: { upset: 1.0, drawBias: 1.0, goals: 1.0, hostEdge: 1.0, confShift: 0 },
+    betting: {
+      kelly: 0.6,
+      minFrac: 0.02,
+      maxFrac: 0.12,
+      blurb: "Dollar-cost averages through the tournament: small, steady, sensible stakes on every match.",
+    },
   },
   {
     id: "claude",
@@ -61,6 +84,12 @@ export const MODELS: ModelMeta[] = [
     strategy:
       "Claude reasons about pressing structures and transition risk, then reminds you the uncertainty is high. It respects favourites slightly more than the field, leans into draws when sides are evenly matched, and keeps scorelines conservative. Humble confidence numbers — often right anyway.",
     p: { upset: 0.88, drawBias: 1.28, goals: 0.92, hostEdge: 1.0, confShift: -6 },
+    betting: {
+      kelly: 0.35,
+      minFrac: 0.015,
+      maxFrac: 0.08,
+      blurb: "Quarter-Kelly with a capital-preservation streak. Sizes up only when the edge survives scrutiny.",
+    },
   },
   {
     id: "gemini",
@@ -73,6 +102,12 @@ export const MODELS: ModelMeta[] = [
     strategy:
       "Gemini runs everything through the spreadsheet: expected goals, form curves, travel fatigue, and — its favourite variable — host-nation crowd effects, which it weights heavier than anyone else. Mildly chalk-flavoured, statistically armed, and never knowingly under-cited.",
     p: { upset: 0.95, drawBias: 0.9, goals: 1.06, hostEdge: 1.45, confShift: 3 },
+    betting: {
+      kelly: 0.85,
+      minFrac: 0.02,
+      maxFrac: 0.16,
+      blurb: "Fractional Kelly straight off the spreadsheet — and it sizes up whenever a host nation is on the pitch.",
+    },
   },
 ];
 

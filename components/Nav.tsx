@@ -8,7 +8,6 @@ const LINKS = [
   { href: "/matches", label: "Matches" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/models", label: "The Models" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export function Nav() {

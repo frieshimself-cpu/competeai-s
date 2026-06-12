@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useStore } from "@/lib/store";
-import { MODELS, MODEL_MAP } from "@/lib/models";
+import { MODEL_MAP } from "@/lib/models";
 import { computeStandings, scoredMatches, POINTS } from "@/lib/scoring";
+import { fmtMoney, START_BANKROLL } from "@/lib/betting";
 import { MatchCard } from "@/components/MatchCard";
 import { ModelAvatar } from "@/components/ModelAvatar";
 import { FormDots } from "@/components/FormDots";
 
 export default function Dashboard() {
-  const { hydrated, matches, resultFor } = useStore();
+  const { hydrated, matches, resultFor, betting } = useStore();
 
   if (!hydrated) {
     return <div className="skel">Warming up the pundits…</div>;
@@ -20,27 +21,26 @@ export default function Dashboard() {
   const upcoming = matches.filter((m) => !resultFor(m.id)).slice(0, 4);
   const recent = [...done].reverse().slice(0, 4);
   const leader = standings[0];
-  const playedPct = matches.length
-    ? Math.round((done.length / matches.length) * 100)
-    : 0;
 
   return (
     <>
       <section className="hero">
         <div className="kicker">FIFA World Cup 2026 · June 11 — July 19 · USA · Mexico · Canada</div>
         <h1>
-          Four AIs walk onto a pitch. <span className="grad">Only one leaves with the trophy.</span>
+          Four AIs. A $1,000 bankroll each. <span className="grad">Only one cashes out a champion.</span>
         </h1>
         <p className="page-sub">
-          Grok, ChatGPT, Claude and Gemini have each called every match of the
-          World Cup — scoreline, winner and all the trash talk that comes with
-          it. Real results come in, points get scored, egos get bruised.
+          Grok, ChatGPT, Claude and Gemini have called every match of the World
+          Cup — and they&apos;re not just talking. Each model walked in with
+          $1,000 and lays a stake on every single pick at market odds. Results
+          land, bets settle, bankrolls bleed.
         </p>
       </section>
 
       <div className="podium">
         {standings.map((s, i) => {
           const meta = MODEL_MAP[s.model];
+          const w = betting.walletOf[s.model];
           const isLeader = done.length > 0 && i === 0;
           return (
             <div key={s.model} className={`podium-card ${isLeader ? "leader" : ""}`}>
@@ -57,8 +57,14 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="pts">
-                {s.points}
-                <span>pts</span>
+                {fmtMoney(w.bankroll)}
+                <span>bank</span>
+              </div>
+              <div className="plrow">
+                <span className={`pill ${w.profit > 0 ? "green" : w.profit < 0 ? "red" : ""}`}>
+                  {w.profit > 0 ? "▲" : w.profit < 0 ? "▼" : "—"} {fmtMoney(w.profit, true)}
+                </span>
+                <span className="pill">{s.points} pts</span>
               </div>
               <div className="statline">
                 <span>🎯 {s.exact} exact</span>
@@ -70,16 +76,19 @@ export default function Dashboard() {
         })}
       </div>
 
-      {done.length > 0 && leader && (
-        <p className="muted small" style={{ marginTop: 14 }}>
-          {done.length} of {matches.length} matches scored ({playedPct}% of the
-          fixtures so far) — <b style={{ color: MODEL_MAP[leader.model].color }}>{MODEL_MAP[leader.model].name}</b>{" "}
-          {standings[1] && leader.points === standings[1].points
-            ? "shares the lead"
-            : "leads the league"}{" "}
-          with {leader.points} points.
-        </p>
-      )}
+      <p className="muted small" style={{ marginTop: 14 }}>
+        Ranked by league points · every model bought in for {fmtMoney(START_BANKROLL)}
+        {done.length > 0 && leader && (
+          <>
+            {" "}· {fmtMoney(betting.totalStaked)} settled in bets across {done.length} of{" "}
+            {matches.length} matches —{" "}
+            <b style={{ color: MODEL_MAP[leader.model].color }}>{MODEL_MAP[leader.model].name}</b>{" "}
+            {standings[1] && leader.points === standings[1].points ? "shares the lead" : "leads"}{" "}
+            with {leader.points} points
+          </>
+        )}
+        .
+      </p>
 
       <h2 className="section-title">
         Up next
@@ -88,7 +97,7 @@ export default function Dashboard() {
         </Link>
       </h2>
       {upcoming.length === 0 ? (
-        <div className="empty">No fixtures awaiting predictions — add knockout matches in Admin.</div>
+        <div className="empty">No open fixtures — knockout matches appear as the bracket resolves.</div>
       ) : (
         <div className="match-list">
           {upcoming.map((m) => (
@@ -113,7 +122,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <h2 className="section-title">How scoring works</h2>
+      <h2 className="section-title">How it&apos;s scored</h2>
       <div className="card">
         <div className="rules">
           <div className="rule">
@@ -126,14 +135,14 @@ export default function Dashboard() {
             <b>+{POINTS.outcome}</b> Right outcome only — winner or draw, wrong numbers.
           </div>
           <div className="rule">
-            <b>0</b> Wrong outcome. The other three models will remember this.
+            <b>0</b> Wrong outcome. And the stake is gone with it.
           </div>
         </div>
         <p className="muted small" style={{ marginBottom: 0 }}>
-          Every model locks identical fixtures with its own strategy — same
-          matches, same information, different personalities. Results are
-          entered in <Link href="/admin" style={{ color: "var(--green)" }}>Admin</Link> as
-          the real World Cup unfolds.
+          Points decide the league table. The money is pride: every model
+          stakes a slice of its bankroll on every pick at the market price —
+          win the bet and it pays stake × odds, lose and the book keeps it.
+          Same fixtures, same odds, very different appetites for risk.
         </p>
       </div>
     </>

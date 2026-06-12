@@ -19,7 +19,8 @@ export function Footer() {
         </span>
         <span>
           Predictions are deterministic simulations of each model&apos;s persona —
-          not live API output, and definitely not betting advice.
+          not live API output. Bankrolls are play-money fiction: nothing real
+          is wagered, and none of this is betting advice.
         </span>
         <span style={{ marginLeft: "auto" }}>Data saved to: {storage}</span>
       </div>

@@ -12,6 +12,7 @@ import React, {
 import { Match, ResultScore, SavedState, StorageMode, emptyState } from "./types";
 import { SEED_MATCHES, SEED_RESULTS } from "./fixtures";
 import { simulateResult } from "./engine";
+import { BettingBook, computeBook } from "./betting";
 
 const LS_STATE = "competeai-state-v1";
 const LS_PIN = "competeai-admin-pin";
@@ -30,6 +31,7 @@ interface StoreValue {
   server: ServerInfo;
   sync: SyncStatus;
   matches: Match[]; // seed + custom − hidden, kickoff-sorted
+  betting: BettingBook; // odds, stakes and bankrolls, derived from results
   resultFor: (matchId: string) => ResultScore | null;
   isSeedResult: (matchId: string) => boolean;
   setResult: (matchId: string, r: ResultScore | null) => void;
@@ -185,12 +187,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [state.results],
   );
 
+  const betting = useMemo(() => computeBook(matches, resultFor), [matches, resultFor]);
+
   const value: StoreValue = {
     hydrated,
     state,
     server,
     sync,
     matches,
+    betting,
     resultFor,
     isSeedResult,
     pin,

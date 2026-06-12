@@ -1,6 +1,6 @@
 import { Match, ModelId, Outcome, Prediction } from "./types";
 import { HOSTS, team } from "./teams";
-import { MODEL_MAP } from "./models";
+import { MODEL_MAP, Personality } from "./models";
 
 /* ──────────────────────────────────────────────────────────────
  * Deterministic randomness: every (model, match) pair always
@@ -41,8 +41,16 @@ export interface OutcomeProbs {
   diff: number; // effective rating gap (home - away)
 }
 
-export function probabilitiesFor(match: Match, model: ModelId): OutcomeProbs {
-  const p = MODEL_MAP[model].p;
+/** A personality with no biases — used as the bookmaker's "market" view. */
+export const NEUTRAL_PERSONALITY: Personality = {
+  upset: 1,
+  drawBias: 1,
+  goals: 1,
+  hostEdge: 1,
+  confShift: 0,
+};
+
+export function probabilitiesWith(match: Match, p: Personality): OutcomeProbs {
   const diff = effRating(match.home, p.hostEdge) - effRating(match.away, p.hostEdge);
 
   // Elo-flavoured win expectancy, flattened by the model's upset appetite.
@@ -53,6 +61,10 @@ export function probabilitiesFor(match: Match, model: ModelId): OutcomeProbs {
   const pH = homeShare * (1 - pD);
   const pA = (1 - homeShare) * (1 - pD);
   return { pH, pD, pA, diff };
+}
+
+export function probabilitiesFor(match: Match, model: ModelId): OutcomeProbs {
+  return probabilitiesWith(match, MODEL_MAP[model].p);
 }
 
 function pickWeighted(rng: () => number, weights: [number, number][]): number {

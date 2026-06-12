@@ -464,7 +464,38 @@ input[type="number"].score {
   font-size: 12.5px;
 }
 
-.pred-chip .ps { font-weight: 800; font-size: 13.5px; margin-left: auto; }
+.pred-chip .ps { font-weight: 800; font-size: 13.5px; }
+
+.pred-chip .chip-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mny { font-weight: 800; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.mny.up, .money-up { color: var(--green); }
+.mny.down, .money-down { color: #ff9bae; }
+
+.bet-line {
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 650;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.bet-line.up { color: var(--green); }
+.bet-line.down { color: #ff9bae; }
+
+.plrow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+
+.pill.odds { letter-spacing: 0.03em; font-variant-numeric: tabular-nums; }
 
 .pred-chip .earn {
   font-size: 10.5px;
@@ -580,7 +611,7 @@ table.standings {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  min-width: 640px;
+  min-width: 880px;
 }
 
 table.standings th {
