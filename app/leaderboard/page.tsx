@@ -20,14 +20,14 @@ export default function LeaderboardPage() {
   const { hydrated, matches, resultFor, betting } = useStore();
   const [view, setView] = useState<"bankroll" | "points">("bankroll");
 
-  if (!hydrated) return <div className="skel">Counting the money…</div>;
+  if (!hydrated) return <div className="page-pad"><div className="skel">Counting the money…</div></div>;
 
   const standings = computeStandings(matches, resultFor);
   const { matches: done, series } = cumulativeSeries(matches, resultFor);
   const calls = bestCalls(matches, resultFor, 4);
 
   return (
-    <>
+    <div className="page-pad">
       <div className="kicker">The table that matters</div>
       <h1 className="page-title">Leaderboard</h1>
       <p className="page-sub">
@@ -171,6 +171,6 @@ export default function LeaderboardPage() {
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }

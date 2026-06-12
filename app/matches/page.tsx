@@ -41,10 +41,15 @@ export default function MatchesPage() {
     return [...map.entries()];
   }, [filtered]);
 
-  if (!hydrated) return <div className="skel">Loading the fixture list…</div>;
+  if (!hydrated)
+    return (
+      <div className="page-pad">
+        <div className="skel">Loading the fixture list…</div>
+      </div>
+    );
 
   return (
-    <>
+    <div className="page-pad">
       <div className="kicker">Fixtures & predictions</div>
       <h1 className="page-title">Every match, every call</h1>
       <p className="page-sub">
@@ -97,6 +102,6 @@ export default function MatchesPage() {
           </div>
         ))
       )}
-    </>
+    </div>
   );
 }

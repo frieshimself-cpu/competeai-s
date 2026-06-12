@@ -28,14 +28,14 @@ const norm = (v: number, lo: number, hi: number) =>
 export default function ModelsPage() {
   const { hydrated, matches, resultFor, betting } = useStore();
 
-  if (!hydrated) return <div className="skel">Introducing the contestants…</div>;
+  if (!hydrated) return <div className="page-pad"><div className="skel">Introducing the contestants…</div></div>;
 
   const standings = computeStandings(matches, resultFor);
   const nextMatch = matches.find((m) => !resultFor(m.id));
   const matchById = new Map(matches.map((m) => [m.id, m]));
 
   return (
-    <>
+    <div className="page-pad">
       <div className="kicker">Meet the contestants</div>
       <h1 className="page-title">The Models</h1>
       <p className="page-sub">
@@ -117,6 +117,6 @@ export default function ModelsPage() {
           );
         })}
       </div>
-    </>
+    </div>
   );
 }
