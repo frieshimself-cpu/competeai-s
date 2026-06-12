@@ -59,7 +59,7 @@ export function MatchCard({
         </span>
         <span>{fmtKickoff(match.kickoff)}</span>
         {match.city && <span>· {match.city}</span>}
-        <span className="pill odds" title={`Market odds — ${home.name} / draw / ${away.name}`}>
+        <span className="pill odds" title={`Market odds: ${home.name} / draw / ${away.name}`}>
           {odds.H.toFixed(2)} · {odds.D.toFixed(2)} · {odds.A.toFixed(2)}
         </span>
         {result && (
@@ -77,7 +77,7 @@ export function MatchCard({
         <div className="score-box">
           {result ? (
             <span className="actual">
-              {result.homeGoals}–{result.awayGoals}
+              {result.homeGoals}-{result.awayGoals}
             </span>
           ) : (
             <span className="vs">VS</span>
@@ -96,13 +96,13 @@ export function MatchCard({
             key={meta.id}
             title={
               bet
-                ? `${meta.name}: ${pred.homeGoals}–${pred.awayGoals}, ${fmtMoney(bet.stake)} riding at ${bet.odds.toFixed(2)}`
-                : `${meta.name}: ${pred.homeGoals}–${pred.awayGoals}`
+                ? `${meta.name}: ${pred.homeGoals}-${pred.awayGoals}, ${fmtMoney(bet.stake)} riding at ${bet.odds.toFixed(2)}`
+                : `${meta.name}: ${pred.homeGoals}-${pred.awayGoals}`
             }
           >
             <ModelAvatar meta={meta} />
             <span className="ps">
-              {pred.homeGoals}–{pred.awayGoals}
+              {pred.homeGoals}-{pred.awayGoals}
             </span>
             <span className="chip-right">
               {bet && bet.status === "pending" && (
@@ -132,7 +132,7 @@ export function MatchCard({
                 <div className="who">
                   {meta.name}
                   <span className="faint tiny" style={{ fontWeight: 600 }}>
-                    picks {pred.homeGoals}–{pred.awayGoals} · {pred.confidence}% confident
+                    picks {pred.homeGoals}-{pred.awayGoals} · {pred.confidence}% confident
                   </span>
                 </div>
                 <div className="txt">“{pred.reasoning}”</div>
@@ -142,9 +142,9 @@ export function MatchCard({
                   >
                     💵 {fmtMoney(bet.stake)} on {pickLabel(match, bet.pick, (c) => team(c).name)} @{" "}
                     {bet.odds.toFixed(2)}
-                    {bet.status === "pending" && <> — pays {fmtMoney(bet.stake + bet.toWin)} if it lands</>}
-                    {bet.status === "won" && <> — cashed {fmtMoney(bet.profit, true)}</>}
-                    {bet.status === "lost" && <> — {fmtMoney(bet.stake)} torched</>}
+                    {bet.status === "pending" && <>, pays {fmtMoney(bet.stake + bet.toWin)} if it lands</>}
+                    {bet.status === "won" && <>, cashed {fmtMoney(bet.profit, true)}</>}
+                    {bet.status === "lost" && <>, {fmtMoney(bet.stake)} torched</>}
                   </div>
                 )}
                 <div className="conf-bar">

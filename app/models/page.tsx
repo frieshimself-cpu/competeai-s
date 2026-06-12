@@ -39,7 +39,7 @@ export default function ModelsPage() {
       <div className="kicker">Meet the contestants</div>
       <h1 className="page-title">The Models</h1>
       <p className="page-sub">
-        Same fixtures, same market odds, four very different philosophies —
+        Same fixtures, same market odds, four very different philosophies,
         about football and about money. Each persona is a deterministic
         strategy tuned to how its namesake carries itself, from risk appetite
         to how hard it hammers the betting window.
@@ -84,11 +84,11 @@ export default function ModelsPage() {
 
               <div className="statline" style={{ marginTop: 12 }}>
                 <span>Bets settled: {w.settled}</span>
-                <span>Record: {w.wins}–{w.settled - w.wins}</span>
+                <span>Record: {w.wins}-{w.settled - w.wins}</span>
                 <span>
                   ROI:{" "}
                   <b className={w.roi > 0 ? "money-up" : w.roi < 0 ? "money-down" : ""}>
-                    {w.staked ? `${w.roi > 0 ? "+" : ""}${w.roi}%` : "—"}
+                    {w.staked ? `${w.roi > 0 ? "+" : ""}${w.roi}%` : "-"}
                   </b>
                 </span>
               </div>
@@ -107,8 +107,8 @@ export default function ModelsPage() {
               {take && nextMatch && (
                 <div className="quote-box">
                   <div className="tiny faint" style={{ fontStyle: "normal", fontWeight: 700, marginBottom: 4 }}>
-                    NEXT CALL — {team(nextMatch.home).name} vs {team(nextMatch.away).name} (
-                    {take.homeGoals}–{take.awayGoals})
+                    NEXT CALL: {team(nextMatch.home).name} vs {team(nextMatch.away).name} (
+                    {take.homeGoals}-{take.awayGoals})
                   </div>
                   “{take.reasoning}”
                 </div>

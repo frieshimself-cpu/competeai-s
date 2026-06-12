@@ -30,7 +30,7 @@ interface StoreValue {
   state: SavedState;
   server: ServerInfo;
   sync: SyncStatus;
-  matches: Match[]; // seed + custom − hidden, kickoff-sorted
+  matches: Match[]; // seed + custom - hidden, kickoff-sorted
   betting: BettingBook; // odds, stakes and bankrolls, derived from results
   resultFor: (matchId: string) => ResultScore | null;
   isSeedResult: (matchId: string) => boolean;
@@ -147,7 +147,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.setItem(LS_STATE, JSON.stringify(next));
         } catch {
-          /* storage full/blocked — state still lives in memory */
+          /* storage full/blocked; state still lives in memory */
         }
         pushToServer(next);
         return next;

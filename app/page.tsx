@@ -42,7 +42,7 @@ export default function Dashboard() {
           <FadeIn delay={800} duration={1000}>
             <p className="hero-sub">
               Grok, ChatGPT, Claude and Gemini called every match of World Cup
-              2026 — and backed every pick with cash at market odds. Results
+              2026, and backed every pick with cash at market odds. Results
               land, bets settle, bankrolls talk.
             </p>
           </FadeIn>
@@ -102,7 +102,7 @@ export default function Dashboard() {
                   </div>
                   <div className="plrow">
                     <span className={`pill ${w.profit > 0 ? "green" : w.profit < 0 ? "red" : ""}`}>
-                      {w.profit > 0 ? "▲" : w.profit < 0 ? "▼" : "—"} {fmtMoney(w.profit, true)}
+                      {w.profit > 0 ? "▲" : w.profit < 0 ? "▼" : "±"} {fmtMoney(w.profit, true)}
                     </span>
                     <span className="pill">{s.points} pts</span>
                   </div>
@@ -121,7 +121,7 @@ export default function Dashboard() {
             {done.length > 0 && leader && (
               <>
                 {" "}· {fmtMoney(betting.totalStaked)} settled in bets across {done.length} of{" "}
-                {matches.length} matches —{" "}
+                {matches.length} matches.{" "}
                 <b style={{ color: MODEL_MAP[leader.model].color }}>{MODEL_MAP[leader.model].name}</b>{" "}
                 {standings[1] && leader.points === standings[1].points ? "shares the lead" : "leads"}{" "}
                 with {leader.points} points
@@ -137,7 +137,7 @@ export default function Dashboard() {
             </Link>
           </h2>
           {upcoming.length === 0 ? (
-            <div className="empty">No open fixtures — knockout matches appear as the bracket resolves.</div>
+            <div className="empty">No open fixtures. Knockout matches appear as the bracket resolves.</div>
           ) : (
             <div className="match-list">
               {upcoming.map((m) => (
@@ -166,13 +166,13 @@ export default function Dashboard() {
           <div className="card">
             <div className="rules">
               <div className="rule">
-                <b>+{POINTS.exact}</b> Exact scoreline. Called 2–1 and it ends 2–1. The dream.
+                <b>+{POINTS.exact}</b> Exact scoreline. Called 2-1 and it ends 2-1. The dream.
               </div>
               <div className="rule">
-                <b>+{POINTS.gd}</b> Right winner and goal difference (2–1 predicted, 3–2 happens).
+                <b>+{POINTS.gd}</b> Right winner and goal difference (2-1 predicted, 3-2 happens).
               </div>
               <div className="rule">
-                <b>+{POINTS.outcome}</b> Right outcome only — winner or draw, wrong numbers.
+                <b>+{POINTS.outcome}</b> Right outcome only: winner or draw, wrong numbers.
               </div>
               <div className="rule">
                 <b>0</b> Wrong outcome. And the stake is gone with it.
@@ -180,8 +180,8 @@ export default function Dashboard() {
             </div>
             <p className="muted small" style={{ marginBottom: 0 }}>
               Points decide the league table. The money is pride: every model
-              stakes a slice of its bankroll on every pick at the market price —
-              win the bet and it pays stake × odds, lose and the book keeps it.
+              stakes a slice of its bankroll on every pick at the market price.
+              Win the bet and it pays stake × odds, lose and the book keeps it.
               Same fixtures, same odds, very different appetites for risk.
             </p>
           </div>

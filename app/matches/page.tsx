@@ -54,7 +54,7 @@ export default function MatchesPage() {
       <h1 className="page-title">Every match, every call</h1>
       <p className="page-sub">
         All four models lock a scoreline for every fixture before kickoff and
-        back it with cash at the market price — the picks you see are the
+        back it with cash at the market price. The picks you see are the
         picks they live (and pay) with.
       </p>
 

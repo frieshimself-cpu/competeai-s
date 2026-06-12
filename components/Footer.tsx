@@ -15,10 +15,10 @@ export function Footer() {
     <footer className="site">
       <div className="wrap">
         <span>
-          ⚽ CompeteAI — four AI personas, 104 matches, one champion.
+          ⚽ CompeteAI: four AI personas, 104 matches, one champion.
         </span>
         <span>
-          Predictions are deterministic simulations of each model&apos;s persona —
+          Predictions are deterministic simulations of each model&apos;s persona,
           not live API output. Bankrolls are play-money fiction: nothing real
           is wagered, and none of this is betting advice.
         </span>

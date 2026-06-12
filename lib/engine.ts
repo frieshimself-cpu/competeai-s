@@ -41,7 +41,7 @@ export interface OutcomeProbs {
   diff: number; // effective rating gap (home - away)
 }
 
-/** A personality with no biases — used as the bookmaker's "market" view. */
+/** A personality with no biases, used as the bookmaker's "market" view. */
 export const NEUTRAL_PERSONALITY: Personality = {
   upset: 1,
   drawBias: 1,
@@ -78,7 +78,7 @@ function pickWeighted(rng: () => number, weights: [number, number][]): number {
 }
 
 /* ──────────────────────────────────────────────────────────────
- * Reasoning generators — each model has its own voice.
+ * Reasoning generators. Each model has its own voice.
  * ────────────────────────────────────────────────────────────── */
 
 interface Ctx {
@@ -99,7 +99,7 @@ const GROK_LINES: Tpl[] = [
   (c) => `The "experts" have spreadsheets. I have vibes and the vibes say ${c.pick}, ${c.score}. Spreadsheets hate this one trick.`,
   (c) => `${c.home} vs ${c.away} is ${c.gap} on paper. Paper is for losers. ${c.score}. Next question.`,
   (c) => `Hot take incoming: ${c.pick} ${c.score}. If I'm wrong, I was being ironic. If I'm right, frame this.`,
-  (c) => `${c.dog} at these odds is free money — not financial advice, except it is. Calling ${c.score}.`,
+  (c) => `${c.dog} at these odds is free money. Not financial advice, except it is. Calling ${c.score}.`,
   (c) => `My training data says ${c.fav}. My soul says ${c.score}. Soul wins, it always does.`,
   (c) => `Group-stage chaos is undefeated and so am I (citation needed). ${c.pick}, ${c.score}, book it.`,
 ];
@@ -107,26 +107,26 @@ const GROK_LINES: Tpl[] = [
 const CHATGPT_LINES: Tpl[] = [
   (c) => `Weighing recent form, squad depth and tournament pedigree, ${c.pick} should edge this ${c.score}. The gap between these sides is ${c.gap}, so I'd treat it as a lean rather than a lock.`,
   (c) => `On balance ${c.pick} looks the sensible call at ${c.score}. ${c.fav} carry the stronger overall profile, though World Cup margins are famously thin.`,
-  (c) => `Several factors point the same way here — ${c.fav}'s depth chart chief among them. I'll say ${c.score}, with about ${c.conf}% conviction.`,
+  (c) => `Several factors point the same way here, ${c.fav}'s depth chart chief among them. I'll say ${c.score}, with about ${c.conf}% conviction.`,
   (c) => `A balanced read: ${c.home} bring structure, ${c.away} bring counter-threat. Synthesising both, ${c.pick} ${c.score} is where the evidence lands.`,
-  (c) => `This is ${c.gap}, and my projection lands on ${c.pick} at ${c.score}. Happy to be wrong — that's what post-match analysis is for.`,
+  (c) => `This is ${c.gap}, and my projection lands on ${c.pick} at ${c.score}. Happy to be wrong. That's what post-match analysis is for.`,
   (c) => `Consensus isn't a dirty word when it's usually right. ${c.pick}, ${c.score}, and a respectful nod to the losing dressing room.`,
 ];
 
 const CLAUDE_LINES: Tpl[] = [
-  (c) => `I weighed ${c.home}'s pressing structure against ${c.away}'s transition threat. The gap is ${c.gap}, so I'll say ${c.pick} ${c.score} — though I hold this loosely.`,
+  (c) => `I weighed ${c.home}'s pressing structure against ${c.away}'s transition threat. The gap is ${c.gap}, so I'll say ${c.pick} ${c.score}, though I hold this loosely.`,
   (c) => `I considered a draw seriously here. The honest answer is the uncertainty is high, but on reflection ${c.pick} ${c.score} is my best estimate.`,
   (c) => `Tournament football compresses quality gaps, which gives me pause. Still, careful reasoning points to ${c.pick} at ${c.score}. Confidence: ${c.conf}%, and I mean that literally.`,
   (c) => `There are good arguments for both sides, and I want to represent them fairly. Having done so: ${c.pick}, ${c.score}, with appropriate epistemic humility.`,
   (c) => `${c.fav} are stronger on most dimensions I can verify, but ${c.dog} have a credible path through set pieces. Net of everything, ${c.score}.`,
-  (c) => `I'd rather be calibrated than exciting. ${c.pick} ${c.score} — a modest scoreline, because most football matches have modest scorelines.`,
+  (c) => `I'd rather be calibrated than exciting. ${c.pick} ${c.score}. A modest scoreline, because most football matches have modest scorelines.`,
 ];
 
 const GEMINI_LINES: Tpl[] = [
   (c) => `I ran 10,000 simulations and ${c.pick} prevails in ${c.conf}% of them. The expected-goals model converges on ${c.score}. The data has spoken.`,
   (c) => `Cross-referencing form curves, travel fatigue and venue effects: ${c.pick} ${c.score}. Methodology available on request.`,
   (c) => `My priors said ${c.fav}; my regression agreed. That happens less often than you'd think. ${c.score}.`,
-  (c) => `Adjusting for crowd amplitude — a variable my colleagues persistently undervalue — the projection is ${c.pick} at ${c.score}.`,
+  (c) => `Adjusting for crowd amplitude (a variable my colleagues persistently undervalue), the projection is ${c.pick} at ${c.score}.`,
   (c) => `The matchup matrix rates this ${c.gap}. Monte Carlo says ${c.score}, and I don't argue with Monte Carlo.`,
   (c) => `Signal over noise: ${c.dog}'s underlying numbers are better than their reputation, but not by enough. ${c.pick} ${c.score}.`,
 ];
@@ -206,7 +206,7 @@ export function predictionFor(match: Match, model: ModelId): Prediction {
     fav: favTeam.name,
     dog: dogTeam.name,
     pick: pickName,
-    score: `${homeGoals}–${awayGoals}`,
+    score: `${homeGoals}-${awayGoals}`,
     gap: gapWord(diff),
     conf: confidence,
   };

@@ -1,9 +1,9 @@
 import { Match, ResultScore } from "./types";
 
 /**
- * The real 72-match group stage of the 2026 FIFA World Cup (June 11–27),
+ * The real 72-match group stage of the 2026 FIFA World Cup (June 11-27),
  * pairings taken from the official schedule. Kickoff times are stored in US
- * Eastern Time and are approximate for some matches — the pairings, groups
+ * Eastern Time and are approximate for some matches; the pairings, groups
  * and matchdays are what the prediction league scores against.
  *
  * Knockout-round matches are added from the Admin page once groups resolve.

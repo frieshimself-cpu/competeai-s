@@ -5,10 +5,10 @@ import { team } from "./teams";
 
 /**
  * Scoring (classic prediction-league rules):
- *   5 pts — exact scoreline
- *   3 pts — correct outcome AND goal difference (e.g. predicted 2–1, result 3–2)
- *   2 pts — correct outcome only
- *   0 pts — wrong outcome
+ *   5 pts - exact scoreline
+ *   3 pts - correct outcome AND goal difference (e.g. predicted 2-1, result 3-2)
+ *   2 pts - correct outcome only
+ *   0 pts - wrong outcome
  */
 export const POINTS = { exact: 5, gd: 3, outcome: 2 } as const;
 

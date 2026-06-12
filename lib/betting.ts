@@ -8,7 +8,7 @@ import { NEUTRAL_PERSONALITY, predictionFor, probabilitiesFor, probabilitiesWith
  * from a neutral "market" view (with a 6% vig, because the house always wins).
  *
  * Stakes are fractional-Kelly sized from each model's OWN probability versus
- * the market price, scaled by its personality — so Grok piles onto longshots
+ * the market price, scaled by its personality, so Grok piles onto longshots
  * it believes in while ChatGPT grinds out minimum stakes. Settled in kickoff
  * order; stakes compound on the current roll. Fully deterministic, like the
  * predictions themselves.
@@ -30,7 +30,7 @@ export function marketOdds(match: Match): MatchOdds {
   const hit = oddsCache.get(match.id);
   if (hit) return hit;
   const { pH, pD, pA } = probabilitiesWith(match, NEUTRAL_PERSONALITY);
-  // Floor and cap like a real book — nobody prices a World Cup match at 50/1.
+  // Floor and cap like a real book; nobody prices a World Cup match at 50/1.
   const price = (p: number) =>
     Math.min(26, Math.max(1.05, Math.round((1 / p) * (1 - VIG) * 100) / 100));
   const odds = { H: price(pH), D: price(pD), A: price(pA) };
@@ -127,7 +127,7 @@ export function computeBook(
       let stake = roll * frac;
       stake = roll >= 100 ? Math.round(stake / 5) * 5 : Math.round(stake);
       stake = Math.max(roll >= 1 ? 1 : 0, Math.min(stake, Math.floor(roll)));
-      if (stake <= 0) continue; // effectively bust — sits this one out
+      if (stake <= 0) continue; // effectively bust; sits this one out
 
       const bet: Bet = {
         matchId: m.id,
@@ -178,11 +178,11 @@ export function computeBook(
   return { walletOf, bets, settledMatches, bankrollSeries, totalStaked };
 }
 
-/** "$1,234", "+$92", "−$140" */
+/** "$1,234", "+$92", "-$140" */
 export function fmtMoney(v: number, withSign = false): string {
   const n = Math.round(Math.abs(v));
   const body = `$${n.toLocaleString("en-US")}`;
-  if (v < 0) return `−${body}`;
+  if (v < 0) return `-${body}`;
   return withSign && v > 0 ? `+${body}` : body;
 }
 

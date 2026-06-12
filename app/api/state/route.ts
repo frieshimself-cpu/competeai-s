@@ -74,7 +74,7 @@ async function writeState(state: SavedState): Promise<StorageMode> {
 }
 
 /* ──────────────────────────────────────────────────────────────
- * Validation — the saved blob is shared when KV is enabled, so
+ * Validation: the saved blob is shared when KV is enabled, so
  * rebuild it from scratch instead of trusting the wire shape.
  * ────────────────────────────────────────────────────────────── */
 
