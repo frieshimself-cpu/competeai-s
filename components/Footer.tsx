@@ -15,7 +15,7 @@ export function Footer() {
     <footer className="site">
       <div className="wrap">
         <span>
-          ⚽ CompeteAI: four AI personas, 104 matches, one champion.
+          🥊 CompeteAI: four AI personas, every fight on the card, one belt.
         </span>
         <span>
           Predictions are deterministic simulations of each model&apos;s persona,

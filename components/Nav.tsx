@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
-  { href: "/matches", label: "Matches" },
+  { href: "/fights", label: "Fights" },
   { href: "/models", label: "The Models" },
 ];
 
@@ -15,7 +15,7 @@ export function Nav() {
     <header className="navwrap">
       <nav className="glassbar liquid-glass">
         <Link href="/" className="brand">
-          CompeteAI<span className="brand-sub">WORLD CUP 26</span>
+          CompeteAI<span className="brand-sub">UFC PICKS</span>
         </Link>
         <div className="navlinks">
           {LINKS.map((l) => (

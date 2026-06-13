@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { Match, SavedState, Stage, StorageMode } from "@/lib/types";
-import { ALL_TEAM_CODES } from "@/lib/teams";
+import { CardSlot, Fight, FightOutcome, Method, SavedState, StorageMode } from "@/lib/types";
+import { ALL_FIGHTER_CODES } from "@/lib/fighters";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const KEY = "competeai:worldcup26:state:v1";
+const KEY = "competeai:ufc:state:v1";
 const FILE = path.join(process.cwd(), ".data", "state.json");
 const MAX_BODY = 256 * 1024;
 
@@ -15,8 +15,7 @@ const MAX_BODY = 256 * 1024;
  * Storage backends, best available wins:
  *   1. Vercel KV / Upstash Redis (REST)  → durable + shared
  *   2. Local JSON file                   → durable in `next dev`
- *   3. In-memory                         → best effort (the client
- *      keeps localStorage as source of truth anyway)
+ *   3. In-memory                         → best effort
  * ────────────────────────────────────────────────────────────── */
 
 function kvCreds(): { url: string; token: string } | null {
@@ -43,7 +42,6 @@ async function readState(): Promise<{ mode: StorageMode; state: SavedState | nul
       const state = JSON.parse(fs.readFileSync(FILE, "utf8"));
       return { mode: "file", state };
     }
-    // Probe writability so we report the mode we'd actually save with.
     fs.mkdirSync(path.dirname(FILE), { recursive: true });
     return { mode: "file", state: memory.__competeaiState ?? null };
   } catch {
@@ -74,18 +72,13 @@ async function writeState(state: SavedState): Promise<StorageMode> {
 }
 
 /* ──────────────────────────────────────────────────────────────
- * Validation: the saved blob is shared when KV is enabled, so
- * rebuild it from scratch instead of trusting the wire shape.
+ * Validation — rebuild from scratch rather than trust the wire shape.
  * ────────────────────────────────────────────────────────────── */
 
-const STAGES = new Set<Stage>(["group", "r32", "r16", "qf", "sf", "third", "final"]);
-const TEAM_SET = new Set(ALL_TEAM_CODES);
-
-function int(v: unknown, lo: number, hi: number): number | null {
-  if (typeof v !== "number" || !Number.isFinite(v)) return null;
-  const n = Math.round(v);
-  return n < lo || n > hi ? null : n;
-}
+const OUTCOMES = new Set<FightOutcome>(["R", "B", "D"]);
+const METHODS = new Set<Method>(["KO", "SUB", "DEC"]);
+const SLOTS = new Set<CardSlot>(["Main Event", "Co-Main", "Main Card", "Prelim"]);
+const FIGHTER_SET = new Set(ALL_FIGHTER_CODES);
 
 function sanitize(raw: unknown): SavedState | null {
   if (!raw || typeof raw !== "object") return null;
@@ -93,7 +86,7 @@ function sanitize(raw: unknown): SavedState | null {
   const out: SavedState = {
     version: 1,
     results: {},
-    customMatches: [],
+    customFights: [],
     hiddenIds: [],
     updatedAt: typeof r.updatedAt === "number" ? r.updatedAt : Date.now(),
   };
@@ -101,49 +94,58 @@ function sanitize(raw: unknown): SavedState | null {
   const results = r.results;
   if (results && typeof results === "object") {
     for (const [id, value] of Object.entries(results as Record<string, unknown>)) {
-      if (typeof id !== "string" || id.length > 80) continue;
+      if (typeof id !== "string" || id.length > 90) continue;
       if (Object.keys(out.results).length >= 500) break;
       if (value === null) {
         out.results[id] = null;
         continue;
       }
       const v = value as Record<string, unknown>;
-      const h = int(v?.homeGoals, 0, 99);
-      const a = int(v?.awayGoals, 0, 99);
-      if (h !== null && a !== null) out.results[id] = { homeGoals: h, awayGoals: a };
+      const round = typeof v?.round === "number" ? Math.round(v.round) : NaN;
+      if (
+        OUTCOMES.has(v?.winner as FightOutcome) &&
+        METHODS.has(v?.method as Method) &&
+        round >= 0 &&
+        round <= 5
+      ) {
+        out.results[id] = { winner: v.winner as FightOutcome, method: v.method as Method, round };
+      }
     }
   }
 
-  if (Array.isArray(r.customMatches)) {
-    for (const value of r.customMatches.slice(0, 200)) {
-      const m = value as Record<string, unknown>;
+  if (Array.isArray(r.customFights)) {
+    for (const value of r.customFights.slice(0, 200)) {
+      const f = value as Record<string, unknown>;
       if (
-        typeof m?.id === "string" &&
-        m.id.length <= 80 &&
-        STAGES.has(m.stage as Stage) &&
-        TEAM_SET.has(m.home as string) &&
-        TEAM_SET.has(m.away as string) &&
-        m.home !== m.away &&
-        typeof m.kickoff === "string" &&
-        m.kickoff.length <= 40
+        typeof f?.id === "string" &&
+        f.id.length <= 90 &&
+        typeof f.eventId === "string" &&
+        FIGHTER_SET.has(f.red as string) &&
+        FIGHTER_SET.has(f.blue as string) &&
+        f.red !== f.blue &&
+        (f.rounds === 3 || f.rounds === 5) &&
+        SLOTS.has(f.slot as CardSlot) &&
+        typeof f.weightClass === "string" &&
+        f.weightClass.length <= 50
       ) {
-        const match: Match = {
-          id: m.id,
-          stage: m.stage as Stage,
-          home: m.home as string,
-          away: m.away as string,
-          kickoff: m.kickoff,
-        };
-        if (typeof m.group === "string" && m.group.length === 1) match.group = m.group;
-        if (typeof m.city === "string" && m.city.length <= 60) match.city = m.city;
-        out.customMatches.push(match);
+        out.customFights.push({
+          id: f.id,
+          eventId: (f.eventId as string).slice(0, 20),
+          red: f.red as string,
+          blue: f.blue as string,
+          weightClass: f.weightClass,
+          rounds: f.rounds as 3 | 5,
+          title: !!f.title,
+          slot: f.slot as CardSlot,
+          order: typeof f.order === "number" ? f.order : 99,
+        } as Fight);
       }
     }
   }
 
   if (Array.isArray(r.hiddenIds)) {
     out.hiddenIds = r.hiddenIds
-      .filter((x): x is string => typeof x === "string" && x.length <= 80)
+      .filter((x): x is string => typeof x === "string" && x.length <= 90)
       .slice(0, 500);
   }
 
@@ -161,11 +163,8 @@ export async function GET() {
       pinRequired: !!process.env.ADMIN_PIN,
       state,
     });
-  } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: "storage_unavailable" },
-      { status: 500 },
-    );
+  } catch {
+    return NextResponse.json({ ok: false, error: "storage_unavailable" }, { status: 500 });
   }
 }
 
@@ -195,9 +194,6 @@ export async function POST(req: NextRequest) {
     const mode = await writeState(state);
     return NextResponse.json({ ok: true, mode });
   } catch {
-    return NextResponse.json(
-      { ok: false, error: "storage_unavailable" },
-      { status: 500 },
-    );
+    return NextResponse.json({ ok: false, error: "storage_unavailable" }, { status: 500 });
   }
 }

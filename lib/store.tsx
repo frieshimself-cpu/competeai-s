@@ -9,12 +9,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Match, ResultScore, SavedState, StorageMode, emptyState } from "./types";
-import { SEED_MATCHES, SEED_RESULTS } from "./fixtures";
+import { Fight, FightResult, SavedState, StorageMode, emptyState } from "./types";
+import { SEED_FIGHTS, SEED_RESULTS, chronoIndex } from "./fixtures";
 import { simulateResult } from "./engine";
 import { BettingBook, computeBook } from "./betting";
 
-const LS_STATE = "competeai-state-v1";
+const LS_STATE = "competeai-ufc-state-v1";
 const LS_PIN = "competeai-admin-pin";
 
 export type SyncStatus = "idle" | "saving" | "saved" | "error" | "unauthorized";
@@ -30,18 +30,18 @@ interface StoreValue {
   state: SavedState;
   server: ServerInfo;
   sync: SyncStatus;
-  matches: Match[]; // seed + custom - hidden, kickoff-sorted
-  betting: BettingBook; // odds, stakes and bankrolls, derived from results
-  resultFor: (matchId: string) => ResultScore | null;
-  isSeedResult: (matchId: string) => boolean;
-  setResult: (matchId: string, r: ResultScore | null) => void;
-  addMatch: (m: Omit<Match, "id">) => void;
-  removeMatch: (matchId: string) => void;
+  fights: Fight[]; // seed + custom − hidden, card order
+  betting: BettingBook;
+  resultFor: (fightId: string) => FightResult | null;
+  isSeedResult: (fightId: string) => boolean;
+  setResult: (fightId: string, r: FightResult | null) => void;
+  addFight: (f: Omit<Fight, "id">) => void;
+  removeFight: (fightId: string) => void;
   simulateRemaining: () => void;
   clearAllResults: () => void;
   resetAll: () => void;
   exportState: () => string;
-  importState: (json: string) => string | null; // error message or null
+  importState: (json: string) => string | null;
   pin: string;
   setPin: (pin: string) => void;
 }
@@ -57,7 +57,7 @@ function loadLocal(): SavedState {
       return {
         version: 1,
         results: parsed.results ?? {},
-        customMatches: Array.isArray(parsed.customMatches) ? parsed.customMatches : [],
+        customFights: Array.isArray(parsed.customFights) ? parsed.customFights : [],
         hiddenIds: Array.isArray(parsed.hiddenIds) ? parsed.hiddenIds : [],
         updatedAt: typeof parsed.updatedAt === "number" ? parsed.updatedAt : 0,
       };
@@ -84,7 +84,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const pinRef = useRef(pin);
   pinRef.current = pin;
 
-  // Initial hydration: localStorage first, then reconcile with the server.
   useEffect(() => {
     const local = loadLocal();
     setState(local);
@@ -103,7 +102,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
         const remote: SavedState | null = data.state ?? null;
         if (remote && remote.updatedAt > local.updatedAt) {
-          // Server knows newer results (e.g. the admin updated them) → adopt.
           setState(remote);
           localStorage.setItem(LS_STATE, JSON.stringify(remote));
         }
@@ -120,10 +118,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch("/api/state", {
           method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-admin-pin": pinRef.current,
-          },
+          headers: { "content-type": "application/json", "x-admin-pin": pinRef.current },
           body: JSON.stringify({ state: next }),
         });
         if (res.status === 401) {
@@ -163,86 +158,87 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  const matches = useMemo(() => {
+  const fights = useMemo(() => {
     const hidden = new Set(state.hiddenIds);
-    return [...SEED_MATCHES, ...state.customMatches]
-      .filter((m) => !hidden.has(m.id))
-      .sort((a, b) => a.kickoff.localeCompare(b.kickoff) || a.id.localeCompare(b.id));
-  }, [state.customMatches, state.hiddenIds]);
+    return [...SEED_FIGHTS, ...state.customFights]
+      .filter((f) => !hidden.has(f.id))
+      .sort((a, b) => chronoIndex(b) - chronoIndex(a)); // marquee/soonest first, main event first
+  }, [state.customFights, state.hiddenIds]);
 
   const resultFor = useCallback(
-    (matchId: string): ResultScore | null => {
-      if (Object.prototype.hasOwnProperty.call(state.results, matchId)) {
-        return state.results[matchId];
+    (fightId: string): FightResult | null => {
+      if (Object.prototype.hasOwnProperty.call(state.results, fightId)) {
+        return state.results[fightId];
       }
-      return SEED_RESULTS[matchId] ?? null;
+      return SEED_RESULTS[fightId] ?? null;
     },
     [state.results],
   );
 
   const isSeedResult = useCallback(
-    (matchId: string) =>
-      !!SEED_RESULTS[matchId] &&
-      !Object.prototype.hasOwnProperty.call(state.results, matchId),
+    (fightId: string) =>
+      !!SEED_RESULTS[fightId] &&
+      !Object.prototype.hasOwnProperty.call(state.results, fightId),
     [state.results],
   );
 
-  const betting = useMemo(() => computeBook(matches, resultFor), [matches, resultFor]);
+  const betting = useMemo(() => computeBook(fights, resultFor), [fights, resultFor]);
 
   const value: StoreValue = {
     hydrated,
     state,
     server,
     sync,
-    matches,
+    fights,
     betting,
     resultFor,
     isSeedResult,
     pin,
     setPin,
-    setResult: (matchId, r) =>
+    setResult: (fightId, r) =>
       mutate((s) => {
         const results = { ...s.results };
         if (r === null) {
-          if (SEED_RESULTS[matchId]) results[matchId] = null; // tombstone a seeded result
-          else delete results[matchId];
+          if (SEED_RESULTS[fightId]) results[fightId] = null;
+          else delete results[fightId];
         } else {
-          results[matchId] = {
-            homeGoals: Math.max(0, Math.min(99, Math.round(r.homeGoals))),
-            awayGoals: Math.max(0, Math.min(99, Math.round(r.awayGoals))),
+          results[fightId] = {
+            winner: r.winner,
+            method: r.method,
+            round: Math.max(0, Math.min(5, Math.round(r.round))),
           };
         }
         return { ...s, results };
       }),
-    addMatch: (m) =>
+    addFight: (f) =>
       mutate((s) => ({
         ...s,
-        customMatches: [
-          ...s.customMatches,
-          { ...m, id: `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}` },
+        customFights: [
+          ...s.customFights,
+          { ...f, id: `c-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}` },
         ],
       })),
-    removeMatch: (matchId) =>
+    removeFight: (fightId) =>
       mutate((s) => {
-        const isCustom = s.customMatches.some((m) => m.id === matchId);
+        const isCustom = s.customFights.some((f) => f.id === fightId);
         const results = { ...s.results };
-        delete results[matchId];
+        delete results[fightId];
         return {
           ...s,
           results,
-          customMatches: s.customMatches.filter((m) => m.id !== matchId),
-          hiddenIds: isCustom ? s.hiddenIds : [...new Set([...s.hiddenIds, matchId])],
+          customFights: s.customFights.filter((f) => f.id !== fightId),
+          hiddenIds: isCustom ? s.hiddenIds : [...new Set([...s.hiddenIds, fightId])],
         };
       }),
     simulateRemaining: () =>
       mutate((s) => {
         const results = { ...s.results };
-        for (const m of matches) {
-          const existing = Object.prototype.hasOwnProperty.call(results, m.id)
-            ? results[m.id]
-            : SEED_RESULTS[m.id] ?? null;
+        for (const f of fights) {
+          const existing = Object.prototype.hasOwnProperty.call(results, f.id)
+            ? results[f.id]
+            : SEED_RESULTS[f.id] ?? null;
           if (existing === null || existing === undefined) {
-            results[m.id] = simulateResult(m);
+            results[f.id] = simulateResult(f);
           }
         }
         return { ...s, results };
@@ -253,8 +249,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         for (const id of Object.keys(SEED_RESULTS)) results[id] = null;
         return { ...s, results };
       }),
-    resetAll: () =>
-      mutate(() => ({ ...emptyState(), updatedAt: Date.now() })),
+    resetAll: () => mutate(() => ({ ...emptyState(), updatedAt: Date.now() })),
     exportState: () => JSON.stringify(stateRef.current, null, 2),
     importState: (json) => {
       try {
@@ -265,12 +260,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         mutate(() => ({
           version: 1,
           results: parsed.results ?? {},
-          customMatches: Array.isArray(parsed.customMatches) ? parsed.customMatches : [],
+          customFights: Array.isArray(parsed.customFights) ? parsed.customFights : [],
           hiddenIds: Array.isArray(parsed.hiddenIds) ? parsed.hiddenIds : [],
           updatedAt: Date.now(),
         }));
         return null;
-      } catch (e) {
+      } catch {
         return "Could not parse that file as JSON.";
       }
     },

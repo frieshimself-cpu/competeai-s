@@ -1,73 +1,75 @@
-import { Match, ModelId, Prediction, ResultScore, outcomeOf } from "./types";
+import { Fight, FightResult, ModelId, Prediction } from "./types";
 import { MODELS } from "./models";
 import { predictionFor } from "./engine";
-import { team } from "./teams";
+import { fighter } from "./fighters";
+import { chronoIndex } from "./fixtures";
 
 /**
- * Scoring (classic prediction-league rules):
- *   5 pts - exact scoreline
- *   3 pts - correct outcome AND goal difference (e.g. predicted 2-1, result 3-2)
- *   2 pts - correct outcome only
- *   0 pts - wrong outcome
+ * Scoring (UFC prediction league):
+ *   5 pts — winner + method + round (or winner + decision; a decision has no round)
+ *   3 pts — winner + method, wrong round
+ *   2 pts — winner only
+ *   0 pts — wrong winner
  */
-export const POINTS = { exact: 5, gd: 3, outcome: 2 } as const;
+export const POINTS = { exact: 5, method: 3, winner: 2 } as const;
 
-export function pointsFor(p: Prediction, r: ResultScore): number {
-  if (p.homeGoals === r.homeGoals && p.awayGoals === r.awayGoals) return POINTS.exact;
-  if (p.outcome !== outcomeOf(r.homeGoals, r.awayGoals)) return 0;
-  if (p.homeGoals - p.awayGoals === r.homeGoals - r.awayGoals) return POINTS.gd;
-  return POINTS.outcome;
+export function pointsFor(p: Prediction, r: FightResult): number {
+  if (p.winner !== r.winner) return 0;
+  if (p.method !== r.method) return POINTS.winner;
+  if (r.method === "DEC") return POINTS.exact; // decisions have no round to miss
+  if (p.round === r.round) return POINTS.exact;
+  return POINTS.method;
 }
 
 export interface ModelStanding {
   model: ModelId;
   points: number;
   exact: number;
-  gd: number;
-  outcome: number;
+  method: number;
+  winner: number;
   miss: number;
-  scored: number; // matches with a result
-  accuracy: number; // % of scored matches with at least the outcome right
-  last5: number[]; // points from the 5 most recent scored matches
+  scored: number;
+  accuracy: number; // % of scored fights with at least the winner right
+  last5: number[];
 }
 
-export type GetResult = (matchId: string) => ResultScore | null;
+export type GetResult = (fightId: string) => FightResult | null;
 
-/** Matches that have a result, in kickoff order. */
-export function scoredMatches(matches: Match[], getResult: GetResult): Match[] {
-  return matches
-    .filter((m) => getResult(m.id) !== null)
-    .sort((a, b) => a.kickoff.localeCompare(b.kickoff));
+/** Fights that have a result, in chronological (settlement) order. */
+export function scoredFights(fights: Fight[], getResult: GetResult): Fight[] {
+  return fights
+    .filter((f) => getResult(f.id) !== null)
+    .sort((a, b) => chronoIndex(a) - chronoIndex(b));
 }
 
-export function computeStandings(matches: Match[], getResult: GetResult): ModelStanding[] {
-  const done = scoredMatches(matches, getResult);
+export function computeStandings(fights: Fight[], getResult: GetResult): ModelStanding[] {
+  const done = scoredFights(fights, getResult);
   const rows = MODELS.map((meta) => {
     const s: ModelStanding = {
       model: meta.id,
       points: 0,
       exact: 0,
-      gd: 0,
-      outcome: 0,
+      method: 0,
+      winner: 0,
       miss: 0,
       scored: done.length,
       accuracy: 0,
       last5: [],
     };
-    const perMatch: number[] = [];
-    for (const m of done) {
-      const r = getResult(m.id)!;
-      const pts = pointsFor(predictionFor(m, meta.id), r);
-      perMatch.push(pts);
+    const perFight: number[] = [];
+    for (const f of done) {
+      const r = getResult(f.id)!;
+      const pts = pointsFor(predictionFor(f, meta.id), r);
+      perFight.push(pts);
       s.points += pts;
       if (pts === POINTS.exact) s.exact++;
-      else if (pts === POINTS.gd) s.gd++;
-      else if (pts === POINTS.outcome) s.outcome++;
+      else if (pts === POINTS.method) s.method++;
+      else if (pts === POINTS.winner) s.winner++;
       else s.miss++;
     }
-    const right = s.exact + s.gd + s.outcome;
+    const right = s.exact + s.method + s.winner;
     s.accuracy = done.length ? Math.round((right / done.length) * 100) : 0;
-    s.last5 = perMatch.slice(-5);
+    s.last5 = perFight.slice(-5);
     return s;
   });
   return rows.sort(
@@ -79,45 +81,44 @@ export function computeStandings(matches: Match[], getResult: GetResult): ModelS
   );
 }
 
-/** Cumulative points per model across scored matches (for the chart). */
+/** Cumulative points per model across scored fights (for the chart). */
 export function cumulativeSeries(
-  matches: Match[],
+  fights: Fight[],
   getResult: GetResult,
-): { matches: Match[]; series: Record<ModelId, number[]> } {
-  const done = scoredMatches(matches, getResult);
+): { fights: Fight[]; series: Record<ModelId, number[]> } {
+  const done = scoredFights(fights, getResult);
   const series = {} as Record<ModelId, number[]>;
   for (const meta of MODELS) {
     let total = 0;
-    series[meta.id] = done.map((m) => {
-      total += pointsFor(predictionFor(m, meta.id), getResult(m.id)!);
+    series[meta.id] = done.map((f) => {
+      total += pointsFor(predictionFor(f, meta.id), getResult(f.id)!);
       return total;
     });
   }
-  return { matches: done, series };
+  return { fights: done, series };
 }
 
 export interface BestCall {
   model: ModelId;
-  match: Match;
+  fight: Fight;
   prediction: Prediction;
-  result: ResultScore;
+  result: FightResult;
   points: number;
-  upset: boolean; // picked winner was the lower-rated side
+  upset: boolean; // picked fighter was the lower-rated side
 }
 
-export function bestCalls(matches: Match[], getResult: GetResult, limit = 4): BestCall[] {
+export function bestCalls(fights: Fight[], getResult: GetResult, limit = 4): BestCall[] {
   const calls: BestCall[] = [];
-  for (const m of scoredMatches(matches, getResult)) {
-    const r = getResult(m.id)!;
+  for (const f of scoredFights(fights, getResult)) {
+    const r = getResult(f.id)!;
     for (const meta of MODELS) {
-      const p = predictionFor(m, meta.id);
+      const p = predictionFor(f, meta.id);
       const pts = pointsFor(p, r);
       if (pts === 0) continue;
-      const winner = p.outcome === "H" ? m.home : p.outcome === "A" ? m.away : null;
-      const loser = p.outcome === "H" ? m.away : p.outcome === "A" ? m.home : null;
-      const upset =
-        !!winner && !!loser && team(winner).rating < team(loser).rating;
-      calls.push({ model: meta.id, match: m, prediction: p, result: r, points: pts, upset });
+      const winCode = p.winner === "R" ? f.red : f.blue;
+      const loseCode = p.winner === "R" ? f.blue : f.red;
+      const upset = fighter(winCode).rating < fighter(loseCode).rating;
+      calls.push({ model: meta.id, fight: f, prediction: p, result: r, points: pts, upset });
     }
   }
   return calls

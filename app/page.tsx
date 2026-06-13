@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { MODEL_MAP } from "@/lib/models";
-import { computeStandings, scoredMatches, POINTS } from "@/lib/scoring";
+import { computeStandings, scoredFights, POINTS } from "@/lib/scoring";
+import { chronoIndex } from "@/lib/fixtures";
 import { fmtMoney, START_BANKROLL } from "@/lib/betting";
-import { MatchCard } from "@/components/MatchCard";
+import { FightCard } from "@/components/FightCard";
 import { ModelAvatar } from "@/components/ModelAvatar";
 import { FormDots } from "@/components/FormDots";
 import { AnimatedHeading } from "@/components/AnimatedHeading";
@@ -15,12 +16,18 @@ const HERO_VIDEO =
   "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260423_084718_72a17915-4964-4059-afcd-22d59399b72e.mp4";
 
 export default function Dashboard() {
-  const { hydrated, matches, resultFor, betting } = useStore();
+  const { hydrated, fights, resultFor, betting } = useStore();
 
-  const standings = hydrated ? computeStandings(matches, resultFor) : [];
-  const done = hydrated ? scoredMatches(matches, resultFor) : [];
-  const upcoming = hydrated ? matches.filter((m) => !resultFor(m.id)).slice(0, 4) : [];
-  const recent = [...done].reverse().slice(0, 4);
+  const standings = hydrated ? computeStandings(fights, resultFor) : [];
+  const done = hydrated ? scoredFights(fights, resultFor) : [];
+  // Upcoming: next event, main event first (fights is already main-first per event).
+  const upcoming = hydrated ? fights.filter((f) => !resultFor(f.id)).slice(0, 4) : [];
+  const recent = hydrated
+    ? fights
+        .filter((f) => resultFor(f.id))
+        .sort((a, b) => chronoIndex(b) - chronoIndex(a))
+        .slice(0, 4)
+    : [];
   const leader = standings[0];
 
   return (
@@ -33,7 +40,7 @@ export default function Dashboard() {
 
         <div className="hero-center">
           <AnimatedHeading
-            text={"Four AIs. One World Cup.\n$1,000 on the line."}
+            text={"Four AIs. One Octagon.\n$1,000 on the line."}
             className="hero-h1"
             style={{ letterSpacing: "-0.04em" }}
             delay={200}
@@ -41,9 +48,9 @@ export default function Dashboard() {
           />
           <FadeIn delay={800} duration={1000}>
             <p className="hero-sub">
-              Grok, ChatGPT, Claude and Gemini called every match of World Cup
-              2026, and backed every pick with cash at market odds. Results
-              land, bets settle, bankrolls talk.
+              Grok, ChatGPT, Claude and Gemini break down every fight on the
+              card — winner, method, round — and back each pick at the
+              sportsbook. The cage door shuts, results land, bankrolls talk.
             </p>
           </FadeIn>
           <FadeIn delay={1200} duration={1000}>
@@ -51,8 +58,8 @@ export default function Dashboard() {
               <Link href="/leaderboard" className="btn-primary">
                 See the Leaderboard
               </Link>
-              <Link href="/matches" className="btn-glass liquid-glass">
-                Browse Matches
+              <Link href="/fights" className="btn-glass liquid-glass">
+                Browse the Card
               </Link>
             </div>
           </FadeIn>
@@ -61,14 +68,14 @@ export default function Dashboard() {
         <div className="hero-bottom">
           <FadeIn delay={1400} duration={1000}>
             <div className="tagline-pill liquid-glass">
-              <p>Predicting. Wagering. Trash-talking.</p>
+              <p>Picking. Wagering. Trash-talking.</p>
             </div>
           </FadeIn>
         </div>
       </section>
 
       {!hydrated ? (
-        <div className="skel">Warming up the pundits…</div>
+        <div className="skel">Taping up the hands…</div>
       ) : (
         <>
           <h2 className="section-title">
@@ -107,7 +114,7 @@ export default function Dashboard() {
                     <span className="pill">{s.points} pts</span>
                   </div>
                   <div className="statline">
-                    <span>🎯 {s.exact} exact</span>
+                    <span>🎯 {s.exact} perfect</span>
                     <span>✓ {s.accuracy}% right</span>
                   </div>
                   <FormDots last5={s.last5} />
@@ -120,8 +127,8 @@ export default function Dashboard() {
             Ranked by league points · every model bought in for {fmtMoney(START_BANKROLL)}
             {done.length > 0 && leader && (
               <>
-                {" "}· {fmtMoney(betting.totalStaked)} settled in bets across {done.length} of{" "}
-                {matches.length} matches.{" "}
+                {" "}· {fmtMoney(betting.totalStaked)} settled in wagers across {done.length}{" "}
+                {done.length === 1 ? "fight" : "fights"}.{" "}
                 <b style={{ color: MODEL_MAP[leader.model].color }}>{MODEL_MAP[leader.model].name}</b>{" "}
                 {standings[1] && leader.points === standings[1].points ? "shares the lead" : "leads"}{" "}
                 with {leader.points} points
@@ -132,16 +139,16 @@ export default function Dashboard() {
 
           <h2 className="section-title">
             Up next
-            <Link className="hint" href="/matches">
-              all fixtures →
+            <Link className="hint" href="/fights">
+              full card →
             </Link>
           </h2>
           {upcoming.length === 0 ? (
-            <div className="empty">No open fixtures. Knockout matches appear as the bracket resolves.</div>
+            <div className="empty">No open fights. Add the next card to see fresh predictions.</div>
           ) : (
             <div className="match-list">
-              {upcoming.map((m) => (
-                <MatchCard key={m.id} match={m} result={null} />
+              {upcoming.map((f) => (
+                <FightCard key={f.id} fight={f} result={null} />
               ))}
             </div>
           )}
@@ -155,8 +162,8 @@ export default function Dashboard() {
                 </Link>
               </h2>
               <div className="match-list">
-                {recent.map((m) => (
-                  <MatchCard key={m.id} match={m} result={resultFor(m.id)} />
+                {recent.map((f) => (
+                  <FightCard key={f.id} fight={f} result={resultFor(f.id)} />
                 ))}
               </div>
             </>
@@ -166,23 +173,23 @@ export default function Dashboard() {
           <div className="card">
             <div className="rules">
               <div className="rule">
-                <b>+{POINTS.exact}</b> Exact scoreline. Called 2-1 and it ends 2-1. The dream.
+                <b>+{POINTS.exact}</b> Perfect call: right fighter, right method, right round.
               </div>
               <div className="rule">
-                <b>+{POINTS.gd}</b> Right winner and goal difference (2-1 predicted, 3-2 happens).
+                <b>+{POINTS.method}</b> Right fighter and method, wrong round.
               </div>
               <div className="rule">
-                <b>+{POINTS.outcome}</b> Right outcome only: winner or draw, wrong numbers.
+                <b>+{POINTS.winner}</b> Right fighter only: called the winner, missed the finish.
               </div>
               <div className="rule">
-                <b>0</b> Wrong outcome. And the stake is gone with it.
+                <b>0</b> Wrong winner. And the stake goes with it.
               </div>
             </div>
             <p className="muted small" style={{ marginBottom: 0 }}>
               Points decide the league table. The money is pride: every model
-              stakes a slice of its bankroll on every pick at the market price.
+              stakes a slice of its bankroll on its pick at the moneyline.
               Win the bet and it pays stake × odds, lose and the book keeps it.
-              Same fixtures, same odds, very different appetites for risk.
+              Same card, same odds, very different appetites for risk.
             </p>
           </div>
         </>

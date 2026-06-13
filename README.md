@@ -1,60 +1,64 @@
-# ⚽ CompeteAI: World Cup 2026 AI Prediction League
+# 🥊 CompeteAI: UFC AI Prediction League
 
-**Grok, ChatGPT, Claude and Gemini go head-to-head on the 2026 FIFA World
-Cup, with money on the line.** Each model called every match before the
-tournament, bought in with a **$1,000 bankroll**, and stakes a slice of its
-roll on every pick at bookmaker odds. Real results land, bets settle, points
+**Grok, ChatGPT, Claude and Gemini go head-to-head predicting UFC fights, with
+money on the line.** For every bout on the card each model calls a **winner,
+method and round**, bought in with a **$1,000 bankroll**, and stakes a slice of
+its roll on each pick at the moneyline. Real results land, bets settle, points
 get scored, bankrolls bleed.
 
-Ships with the **real groups from the December 2025 draw**, the real June 11-27
-group-stage pairings, and the real opening-day results already settled
-(Mexico 2-0 South Africa, South Korea 2-1 Czechia).
+Ships with two real cards: the historic **UFC at the White House** (Topuria vs.
+Gaethje, the marquee upcoming event) and the completed **June 6 Fight Night**
+(Muhammad vs. Bonfim) whose real methods and rounds already seed the
+leaderboard.
 
 ## How it works
 
 ### The competitors
 
-Each AI is a **deterministic prediction persona**: a strategy tuned to how
-its namesake carries itself, reasoning over team strength ratings. Each one
-also has its own betting style:
+Each AI is a **deterministic prediction persona**: a strategy tuned to how its
+namesake carries itself, reasoning over fighter ratings, finish rates and the
+tale of the tape. Each one also has its own betting style:
 
-| Model | Football brain | At the betting window |
+| Model | Fight brain | At the betting window |
 | --- | --- | --- |
-| **Grok** (xAI) | Contrarian: flattens odds, backs underdogs, predicts goals | Over-Kelly degenerate; slams up to 28% of the roll on longshots |
-| **ChatGPT** (OpenAI) | The consensus machine: balanced weights, sensible scorelines | Grinds small flat stakes, every match, no drama |
-| **Claude** (Anthropic) | Careful and hedged: respects favourites, embraces draws | Quarter-Kelly, capital preservation first |
-| **Gemini** (Google) | Data-flavoured chalk, over-weights host-nation crowds | Fractional Kelly off the spreadsheet; sizes up on USA/MEX/CAN games |
+| **Grok** (xAI) | Contrarian: hunts live underdogs and highlight-reel KOs | Over-Kelly degenerate; slams up to 28% of the roll on a juicy dog |
+| **ChatGPT** (OpenAI) | The consensus machine: leans favourites and the scorecards | Flat, disciplined units, every fight, no chasing |
+| **Claude** (Anthropic) | Cautious: respects champions, expects decisions in close fights | Quarter-Kelly, capital-preservation first |
+| **Gemini** (Google) | Data-flavoured chalk; over-weights title-fight pedigree | Fractional Kelly off the spreadsheet; sizes up when a belt is on the line |
 
-Everything is **deterministic** per (model, match): predictions, market odds
-and stake sizing are pure functions, so every visitor on every device sees
-identical picks and identical wagers with no backend required, and nobody
-can re-roll a bad take after the fact. The personas are simulations in each
-model's voice, not live API calls (that's what keeps the site free to run
-and instantly deployable; `lib/engine.ts` and `lib/betting.ts` are cleanly
-isolated if you ever want to wire up real APIs).
+Everything is **deterministic** per (model, fight): the pick, the moneyline and
+the stake are pure functions, so every visitor on every device sees identical
+predictions and wagers with no backend required, and nobody can re-roll a bad
+take after the fact. The personas are simulations in each model's voice, not
+live API calls (that's what keeps the site free to run and instantly
+deployable; `lib/engine.ts` and `lib/betting.ts` are cleanly isolated if you
+ever want to wire up real APIs).
 
 ### Scoring & the money
 
-League rank is decided by classic prediction-league points:
+League rank is decided by prediction-league points:
 
 | Points | For |
 | --- | --- |
-| **+5** | Exact scoreline |
-| **+3** | Correct outcome and goal difference |
-| **+2** | Correct outcome only |
-| **0** | Wrong outcome |
+| **+5** | Perfect call: right fighter, right method, right round |
+| **+3** | Right fighter and method, wrong round |
+| **+2** | Right fighter only |
+| **0** | Wrong fighter |
 
-The bankroll is the spectacle. A neutral market model prices every match
-(1X2 decimal odds with a 6% vig); each AI stakes a fraction of its current
-bankroll sized by the Kelly criterion against its own probabilities, scaled
-by personality. Win a bet and it pays stake x (odds - 1) in profit. Lose and the book keeps it.
-Stakes compound on the live roll, so drawdowns hurt and hot streaks snowball.
+(A decision has no round, so calling the winner *and* a decision is a perfect +5.)
+
+The bankroll is the spectacle. A neutral market model prices every fight as a
+moneyline (decimal odds with a 6% vig, shown American-style like `-450` /
+`+320`); each AI stakes a fraction of its current bankroll sized by the Kelly
+criterion against its own win probability, scaled by personality. Win the bet
+and it pays stake × (odds − 1); lose and the book keeps it. Stakes compound on
+the live roll, so a cold card hurts and a hot one snowballs.
 
 ### Pages
 
-- **Dashboard**: bankroll podium with P/L, next fixtures, latest results, the rules
-- **Matches**: every fixture with market odds, all four picks, stakes/payouts, and each model's in-character reasoning
-- **Leaderboard**: full table (bankroll, P/L, ROI, points), a bankroll/points race chart, best calls
+- **Dashboard**: bankroll podium with P/L, the next card, latest results, the rules
+- **Fights**: every bout with the moneyline, all four picks (winner/method/round), stakes/payouts, and each model's breakdown
+- **Leaderboard**: full table (bankroll, P/L, ROI, points, perfect/method/winner), a bankroll/points race chart, best calls
 - **The Models**: persona profiles with trait bars, betting records and their next hot take
 
 ## Data persistence
@@ -80,20 +84,20 @@ to every visitor when KV is connected.
 There's deliberately no admin UI. The site is a pure spectator product.
 Results update two ways:
 
-**1. Edit the seed (recommended).** Add finished matches to `SEED_RESULTS`
+**1. Edit the seed (recommended).** Add finished fights to `SEED_RESULTS`
 in `lib/fixtures.ts` and push. Vercel redeploys and every visitor gets the
-new results. Match ids are `GROUP-HOME-AWAY`, e.g.:
+new results. Fight ids are `EVENT-RED-BLUE`; `winner` is `R` (red) or `B`
+(blue), `round` is `0` for a decision:
 
 ```ts
-export const SEED_RESULTS: Record<string, ResultScore> = {
-  "A-MEX-RSA": { homeGoals: 2, awayGoals: 0 },
-  "A-KOR-CZE": { homeGoals: 2, awayGoals: 1 },
-  "B-CAN-BIH": { homeGoals: 1, awayGoals: 0 }, // ← like this
+export const SEED_RESULTS: Record<string, FightResult> = {
+  "fn-BELAL-BONFIM": { winner: "B", method: "DEC", round: 0 },
+  "wh-TOPURIA-GAETHJE": { winner: "R", method: "KO", round: 3 }, // ← like this
 };
 ```
 
-Knockout fixtures are added to `SEED_MATCHES` the same way once the bracket
-resolves (any stage from `r32` to `final`).
+Add the next card's bouts to `SEED_FIGHTS` (and any new fighters to
+`lib/fighters.ts`) the same way.
 
 **2. POST to the state API** (instant, no redeploy; shared when KV is
 connected). Protect it by setting an `ADMIN_PIN` env var; without the
@@ -102,13 +106,13 @@ matching `x-admin-pin` header, writes are rejected:
 ```bash
 curl -X POST https://your-app.vercel.app/api/state \
   -H 'content-type: application/json' -H 'x-admin-pin: YOUR_PIN' \
-  -d '{"state":{"version":1,"results":{"B-CAN-BIH":{"homeGoals":1,"awayGoals":0}},
-       "customMatches":[],"hiddenIds":[],"updatedAt":'$(date +%s000)'}}'
+  -d '{"state":{"version":1,"results":{"wh-TOPURIA-GAETHJE":{"winner":"R","method":"KO","round":3}},
+       "customFights":[],"hiddenIds":[],"updatedAt":'$(date +%s000)'}}'
 ```
 
-Note the POST replaces the whole saved state (results listed there overlay
-the seeded ones), so include every override you want kept. Setting
-`ADMIN_PIN` is strongly recommended on any shared deployment.
+The POST replaces the whole saved state (results listed there overlay the
+seeded ones), so include every override you want kept. Setting `ADMIN_PIN`
+is strongly recommended on any shared deployment.
 
 ## Deploying to Vercel
 
@@ -131,13 +135,12 @@ npm run build  # production build + type-check
 
 ## Notes on the data
 
-- Groups, pairings and matchdays are the real 2026 schedule; some kickoff
-  times are approximate (stored as US Eastern); pairings are what the
-  league scores against.
-- Team strength ratings in `lib/teams.ts` are an editorial index used by the
-  personas and the odds market; tweak them and predictions, odds and stakes
-  all change everywhere, deterministically.
+- Pairings, weight classes and the June 6 results are taken from the announced
+  cards and official results; fighter ratings, records and `ko` (knockout vs
+  submission lean) in `lib/fighters.ts` are an editorial index used by the
+  prediction engines and the odds market. Tweak them and predictions, odds and
+  stakes all change everywhere, deterministically.
 
-*For entertainment only. The bankrolls are fictional play-money (no real
-money is wagered anywhere) and no actual AI models were consulted. Please
-do not bet your own real dollars on Grok's vibes.*
+*For entertainment only. The bankrolls are fictional play-money (no real money
+is wagered anywhere) and no actual AI models were consulted. Please do not bet
+your own real dollars on Grok's vibes.*

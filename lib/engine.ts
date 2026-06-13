@@ -1,9 +1,9 @@
-import { Match, ModelId, Outcome, Prediction } from "./types";
-import { HOSTS, team } from "./teams";
+import { Corner, Fight, FightResult, Method, METHOD_WORD, ModelId, Prediction } from "./types";
+import { fighter } from "./fighters";
 import { MODEL_MAP, Personality } from "./models";
 
 /* ──────────────────────────────────────────────────────────────
- * Deterministic randomness: every (model, match) pair always
+ * Deterministic randomness: every (model, fight) pair always
  * produces the same prediction, on every device, with no backend.
  * ────────────────────────────────────────────────────────────── */
 
@@ -29,106 +29,115 @@ function mulberry32(seed: number): () => number {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Effective rating incl. host-nation crowd edge, as seen by a given model. */
-function effRating(code: string, hostEdge: number): number {
-  return team(code).rating + (HOSTS.has(code) ? 3.5 * hostEdge : 0);
-}
-
-export interface OutcomeProbs {
-  pH: number;
-  pD: number;
-  pA: number;
-  diff: number; // effective rating gap (home - away)
-}
-
-/** A personality with no biases, used as the bookmaker's "market" view. */
 export const NEUTRAL_PERSONALITY: Personality = {
   upset: 1,
-  drawBias: 1,
-  goals: 1,
-  hostEdge: 1,
+  decisionBias: 1,
+  finishLust: 1,
+  favReverence: 1,
   confShift: 0,
 };
 
-export function probabilitiesWith(match: Match, p: Personality): OutcomeProbs {
-  const diff = effRating(match.home, p.hostEdge) - effRating(match.away, p.hostEdge);
-
-  // Elo-flavoured win expectancy, flattened by the model's upset appetite.
-  let homeShare = 1 / (1 + Math.pow(10, -diff / 16));
-  homeShare = 0.5 + (homeShare - 0.5) / p.upset;
-
-  const pD = clamp((0.27 - Math.abs(diff) * 0.005) * p.drawBias, 0.07, 0.34);
-  const pH = homeShare * (1 - pD);
-  const pA = (1 - homeShare) * (1 - pD);
-  return { pH, pD, pA, diff };
+/** Rating as seen by a given persona (champions/favourites get a reverence bump). */
+function effRating(code: string, isFav: boolean, favReverence: number): number {
+  return fighter(code).rating + (isFav ? (favReverence - 1) * 6 : 0);
 }
 
-export function probabilitiesFor(match: Match, model: ModelId): OutcomeProbs {
-  return probabilitiesWith(match, MODEL_MAP[model].p);
+export interface OutcomeProbs {
+  pRed: number;
+  pBlue: number;
+  diff: number; // effective rating gap (red - blue)
 }
 
-function pickWeighted(rng: () => number, weights: [number, number][]): number {
-  const total = weights.reduce((s, [, w]) => s + w, 0);
+export function probabilitiesWith(fight: Fight, p: Personality): OutcomeProbs {
+  const rRed = fighter(fight.red).rating;
+  const rBlue = fighter(fight.blue).rating;
+  const redFav = rRed >= rBlue;
+  const eRed = effRating(fight.red, redFav, p.favReverence);
+  const eBlue = effRating(fight.blue, !redFav, p.favReverence);
+  const diff = eRed - eBlue;
+
+  // Elo-flavoured win expectancy, flattened by the persona's upset appetite.
+  let redShare = 1 / (1 + Math.pow(10, -diff / 16));
+  redShare = 0.5 + (redShare - 0.5) / p.upset;
+  redShare = clamp(redShare, 0.05, 0.95);
+  return { pRed: redShare, pBlue: 1 - redShare, diff };
+}
+
+export function probabilitiesFor(fight: Fight, model: ModelId): OutcomeProbs {
+  return probabilitiesWith(fight, MODEL_MAP[model].p);
+}
+
+function pickWeighted(rng: () => number, weights: number[]): number {
+  const total = weights.reduce((s, w) => s + w, 0);
   let r = rng() * total;
-  for (const [value, w] of weights) {
-    r -= w;
-    if (r <= 0) return value;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return i;
   }
-  return weights[weights.length - 1][0];
+  return weights.length - 1;
+}
+
+function pickRound(rng: () => number, maxRounds: number, finishLust: number): number {
+  // Earlier rounds heavier; finish-hungry personas steepen toward round 1.
+  const weights: number[] = [];
+  for (let r = 1; r <= maxRounds; r++) weights.push(Math.pow(0.62, r - 1));
+  weights[0] *= clamp(finishLust, 0.6, 1.6);
+  return pickWeighted(rng, weights) + 1;
 }
 
 /* ──────────────────────────────────────────────────────────────
- * Reasoning generators. Each model has its own voice.
+ * Reasoning generators — each model has its own voice.
  * ────────────────────────────────────────────────────────────── */
 
 interface Ctx {
-  home: string;
-  away: string;
+  red: string;
+  blue: string;
   fav: string;
   dog: string;
-  pick: string; // picked team name, or "a draw"
-  score: string;
-  gap: string;
+  pick: string; // picked fighter name
+  how: string; // "by KO in round 2" / "by decision"
+  weight: string;
   conf: number;
+  gap: string;
 }
 
 type Tpl = (c: Ctx) => string;
 
 const GROK_LINES: Tpl[] = [
-  (c) => `Everyone's mainlining the ${c.fav} hype. Meanwhile ${c.pick} takes it ${c.score}. You heard it here first.`,
-  (c) => `The "experts" have spreadsheets. I have vibes and the vibes say ${c.pick}, ${c.score}. Spreadsheets hate this one trick.`,
-  (c) => `${c.home} vs ${c.away} is ${c.gap} on paper. Paper is for losers. ${c.score}. Next question.`,
-  (c) => `Hot take incoming: ${c.pick} ${c.score}. If I'm wrong, I was being ironic. If I'm right, frame this.`,
-  (c) => `${c.dog} at these odds is free money. Not financial advice, except it is. Calling ${c.score}.`,
-  (c) => `My training data says ${c.fav}. My soul says ${c.score}. Soul wins, it always does.`,
-  (c) => `Group-stage chaos is undefeated and so am I (citation needed). ${c.pick}, ${c.score}, book it.`,
+  (c) => `Books love ${c.fav}. I love value. ${c.pick} ${c.how}, screenshot it.`,
+  (c) => `${c.dog} is live and everyone's asleep on it. ${c.pick} ${c.how}. Easy.`,
+  (c) => `Tale of the tape is for cowards. ${c.pick} ${c.how} and it isn't close.`,
+  (c) => `Hot take: ${c.pick} ${c.how}. If I'm wrong I was trolling, if I'm right frame it.`,
+  (c) => `${c.fav} has a chin made of fine china. ${c.pick} ${c.how}, book it.`,
+  (c) => `This is a ${c.gap} on paper and I'm fading the paper. ${c.pick} ${c.how}.`,
+  (c) => `Underdog moneyline + a head kick = free real estate. ${c.pick} ${c.how}.`,
 ];
 
 const CHATGPT_LINES: Tpl[] = [
-  (c) => `Weighing recent form, squad depth and tournament pedigree, ${c.pick} should edge this ${c.score}. The gap between these sides is ${c.gap}, so I'd treat it as a lean rather than a lock.`,
-  (c) => `On balance ${c.pick} looks the sensible call at ${c.score}. ${c.fav} carry the stronger overall profile, though World Cup margins are famously thin.`,
-  (c) => `Several factors point the same way here, ${c.fav}'s depth chart chief among them. I'll say ${c.score}, with about ${c.conf}% conviction.`,
-  (c) => `A balanced read: ${c.home} bring structure, ${c.away} bring counter-threat. Synthesising both, ${c.pick} ${c.score} is where the evidence lands.`,
-  (c) => `This is ${c.gap}, and my projection lands on ${c.pick} at ${c.score}. Happy to be wrong. That's what post-match analysis is for.`,
-  (c) => `Consensus isn't a dirty word when it's usually right. ${c.pick}, ${c.score}, and a respectful nod to the losing dressing room.`,
+  (c) => `Weighing form, output and durability, ${c.pick} is the sensible call ${c.how}. The matchup reads ${c.gap}.`,
+  (c) => `On balance ${c.fav} carries the cleaner profile, so ${c.pick} ${c.how}, with roughly ${c.conf}% conviction.`,
+  (c) => `Several lanes point the same way at ${c.weight}: ${c.pick} ${c.how} is where the evidence lands.`,
+  (c) => `A measured read — ${c.red} vs ${c.blue} is ${c.gap}. I'll take ${c.pick} ${c.how}.`,
+  (c) => `Volume and ring IQ favour one side here. ${c.pick} ${c.how}; happy to be wrong, that's MMA.`,
+  (c) => `Consensus isn't a dirty word when it's usually right. ${c.pick} ${c.how}.`,
 ];
 
 const CLAUDE_LINES: Tpl[] = [
-  (c) => `I weighed ${c.home}'s pressing structure against ${c.away}'s transition threat. The gap is ${c.gap}, so I'll say ${c.pick} ${c.score}, though I hold this loosely.`,
-  (c) => `I considered a draw seriously here. The honest answer is the uncertainty is high, but on reflection ${c.pick} ${c.score} is my best estimate.`,
-  (c) => `Tournament football compresses quality gaps, which gives me pause. Still, careful reasoning points to ${c.pick} at ${c.score}. Confidence: ${c.conf}%, and I mean that literally.`,
-  (c) => `There are good arguments for both sides, and I want to represent them fairly. Having done so: ${c.pick}, ${c.score}, with appropriate epistemic humility.`,
-  (c) => `${c.fav} are stronger on most dimensions I can verify, but ${c.dog} have a credible path through set pieces. Net of everything, ${c.score}.`,
-  (c) => `I'd rather be calibrated than exciting. ${c.pick} ${c.score}. A modest scoreline, because most football matches have modest scorelines.`,
+  (c) => `I weighed ${c.red}'s pressure against ${c.blue}'s counters. It's ${c.gap}, so ${c.pick} ${c.how} — held loosely.`,
+  (c) => `Honestly the variance here is high. On reflection, ${c.pick} ${c.how} is my best estimate, around ${c.conf}%.`,
+  (c) => `Championship rounds reward cardio and composure, which tilts me to ${c.pick} ${c.how}. I could see it going the other way.`,
+  (c) => `There's a real case for both fighters, and I want to be fair to it. Net of everything: ${c.pick} ${c.how}.`,
+  (c) => `${c.fav} is steadier on most axes I can verify, but one clean shot rewrites the night. Still: ${c.pick} ${c.how}.`,
+  (c) => `I'd rather be calibrated than loud. ${c.pick} ${c.how}, because that's the likeliest path, not the flashiest.`,
 ];
 
 const GEMINI_LINES: Tpl[] = [
-  (c) => `I ran 10,000 simulations and ${c.pick} prevails in ${c.conf}% of them. The expected-goals model converges on ${c.score}. The data has spoken.`,
-  (c) => `Cross-referencing form curves, travel fatigue and venue effects: ${c.pick} ${c.score}. Methodology available on request.`,
-  (c) => `My priors said ${c.fav}; my regression agreed. That happens less often than you'd think. ${c.score}.`,
-  (c) => `Adjusting for crowd amplitude (a variable my colleagues persistently undervalue), the projection is ${c.pick} at ${c.score}.`,
-  (c) => `The matchup matrix rates this ${c.gap}. Monte Carlo says ${c.score}, and I don't argue with Monte Carlo.`,
-  (c) => `Signal over noise: ${c.dog}'s underlying numbers are better than their reputation, but not by enough. ${c.pick} ${c.score}.`,
+  (c) => `Ran the tale of the tape 10,000 times; ${c.pick} prevails in ${c.conf}% of them, ${c.how}.`,
+  (c) => `Significant-strike differential and takedown defence converge on ${c.pick} ${c.how}. Methodology on request.`,
+  (c) => `My priors said ${c.fav}; the model agreed. ${c.pick} ${c.how}.`,
+  (c) => `Adjusting for title-fight pedigree — undervalued by my peers — the projection is ${c.pick} ${c.how}.`,
+  (c) => `The matchup matrix rates this ${c.gap}. Monte Carlo says ${c.pick} ${c.how}, and I don't argue with it.`,
+  (c) => `${c.dog}'s underlying numbers beat their reputation, but not by enough. ${c.pick} ${c.how}.`,
 ];
 
 const LINES: Record<ModelId, Tpl[]> = {
@@ -140,10 +149,16 @@ const LINES: Record<ModelId, Tpl[]> = {
 
 function gapWord(diff: number): string {
   const d = Math.abs(diff);
-  if (d < 3) return "a genuine coin-flip";
-  if (d < 7) return "tight";
-  if (d < 13) return "clear but not safe";
-  return "lopsided";
+  if (d < 3) return "a coin-flip";
+  if (d < 8) return "a close one";
+  if (d < 16) return "a clear edge";
+  return "a mismatch";
+}
+
+/** "by KO in round 2" / "by submission in round 1" / "by decision" */
+export function describeFinish(method: Method, round: number): string {
+  if (method === "DEC") return "by decision";
+  return `by ${METHOD_WORD[method]} in round ${round}`;
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -152,74 +167,62 @@ function gapWord(diff: number): string {
 
 const cache = new Map<string, Prediction>();
 
-export function predictionFor(match: Match, model: ModelId): Prediction {
-  const key = `${model}|${match.id}`;
+export function predictionFor(fight: Fight, model: ModelId): Prediction {
+  const key = `${model}|${fight.id}`;
   const hit = cache.get(key);
   if (hit) return hit;
 
   const meta = MODEL_MAP[model];
+  const p = meta.p;
   const rng = mulberry32(hashString(key));
-  const { pH, pD, pA, diff } = probabilitiesFor(match, model);
+  const { pRed, pBlue, diff } = probabilitiesWith(fight, p);
 
-  const r = rng();
-  const outcome: Outcome = r < pH ? "H" : r < pH + pD ? "D" : "A";
+  const winner: Corner = rng() < pRed ? "R" : "B";
+  const winnerCode = winner === "R" ? fight.red : fight.blue;
 
-  let homeGoals: number;
-  let awayGoals: number;
-  const g = meta.p.goals;
+  // Finish probability rises with a bigger skill gap and the persona's appetite.
+  let pFinish = (0.46 + Math.abs(diff) * 0.012) * p.finishLust;
+  pFinish /= p.decisionBias;
+  pFinish = clamp(pFinish, 0.12, 0.85);
 
-  if (outcome === "D") {
-    const score = pickWeighted(rng, [
-      [0, 0.2 / g],
-      [1, 0.46],
-      [2, 0.28 * g],
-      [3, 0.06 * g],
-    ]);
-    homeGoals = awayGoals = score;
+  let method: Method;
+  let round: number;
+  if (rng() < pFinish) {
+    method = rng() < fighter(winnerCode).ko ? "KO" : "SUB";
+    round = pickRound(rng, fight.rounds, p.finishLust);
   } else {
-    const edge = Math.abs(diff);
-    let margin = 1;
-    if (rng() < clamp(0.16 + edge * 0.014, 0.12, 0.5) * g) margin++;
-    if (rng() < clamp(0.05 + edge * 0.006, 0.04, 0.22) * g) margin++;
-    const loser = pickWeighted(rng, [
-      [0, 0.5 / g],
-      [1, 0.38],
-      [2, 0.12 * g],
-    ]);
-    const winner = Math.min(loser + margin, 5);
-    homeGoals = outcome === "H" ? winner : loser;
-    awayGoals = outcome === "H" ? loser : winner;
+    method = "DEC";
+    round = 0;
   }
 
-  const pPick = outcome === "H" ? pH : outcome === "D" ? pD : pA;
+  const pPick = winner === "R" ? pRed : pBlue;
   const confidence = Math.round(clamp(pPick * 100 + meta.p.confShift, 32, 93));
 
-  const home = team(match.home);
-  const away = team(match.away);
-  const favTeam = home.rating >= away.rating ? home : away;
-  const dogTeam = favTeam === home ? away : home;
-  const pickName =
-    outcome === "D" ? "a draw" : outcome === "H" ? home.name : away.name;
+  const red = fighter(fight.red);
+  const blue = fighter(fight.blue);
+  const favF = red.rating >= blue.rating ? red : blue;
+  const dogF = favF === red ? blue : red;
   const ctx: Ctx = {
-    home: home.name,
-    away: away.name,
-    fav: favTeam.name,
-    dog: dogTeam.name,
-    pick: pickName,
-    score: `${homeGoals}-${awayGoals}`,
-    gap: gapWord(diff),
+    red: red.name,
+    blue: blue.name,
+    fav: favF.name,
+    dog: dogF.name,
+    pick: fighter(winnerCode).name,
+    how: describeFinish(method, round),
+    weight: fight.weightClass,
     conf: confidence,
+    gap: gapWord(diff),
   };
 
   const lines = LINES[model];
   const reasoning = lines[Math.floor(rng() * lines.length)](ctx);
 
   const prediction: Prediction = {
-    matchId: match.id,
+    fightId: fight.id,
     model,
-    homeGoals,
-    awayGoals,
-    outcome,
+    winner,
+    method,
+    round,
     confidence,
     reasoning,
   };
@@ -227,24 +230,29 @@ export function predictionFor(match: Match, model: ModelId): Prediction {
   return prediction;
 }
 
-/** Simulate a plausible real result (used by the Admin demo tools). */
-export function simulateResult(match: Match): { homeGoals: number; awayGoals: number } {
-  const rng = mulberry32(hashString(`sim|${match.id}|${Date.now()}|${Math.random()}`));
-  const diff = effRating(match.home, 1) - effRating(match.away, 1);
-  const homeShare = 1 / (1 + Math.pow(10, -diff / 16));
-  const pD = clamp(0.27 - Math.abs(diff) * 0.005, 0.07, 0.34);
-  const r = rng();
-  const outcome: Outcome = r < homeShare * (1 - pD) ? "H" : r < homeShare * (1 - pD) + pD ? "D" : "A";
-  if (outcome === "D") {
-    const s = pickWeighted(rng, [[0, 0.22], [1, 0.46], [2, 0.26], [3, 0.06]]);
-    return { homeGoals: s, awayGoals: s };
+/** Short label for a pick chip, e.g. "TOP KO R2" or "GAE DEC". */
+export function pickShort(fight: Fight, pred: Prediction): string {
+  const code = pred.winner === "R" ? fight.red : fight.blue;
+  const tail = pred.method === "DEC" ? "DEC" : `${pred.method} R${pred.round}`;
+  return `${fighter(code).short} ${tail}`;
+}
+
+/** Full sentence describing a prediction, e.g. "Topuria by KO in round 2". */
+export function describePrediction(fight: Fight, pred: Prediction): string {
+  const code = pred.winner === "R" ? fight.red : fight.blue;
+  return `${fighter(code).name} ${describeFinish(pred.method, pred.round)}`;
+}
+
+/** Simulate a plausible real result (used by the demo tools). */
+export function simulateResult(fight: Fight): FightResult {
+  const rng = mulberry32(hashString(`sim|${fight.id}|${Date.now()}|${Math.random()}`));
+  const { pRed, diff } = probabilitiesWith(fight, NEUTRAL_PERSONALITY);
+  const winner: Corner = rng() < pRed ? "R" : "B";
+  const winnerCode = winner === "R" ? fight.red : fight.blue;
+  const pFinish = clamp(0.46 + Math.abs(diff) * 0.012, 0.2, 0.8);
+  if (rng() < pFinish) {
+    const method: Method = rng() < fighter(winnerCode).ko ? "KO" : "SUB";
+    return { winner, method, round: pickRound(rng, fight.rounds, 1) };
   }
-  let margin = 1;
-  if (rng() < clamp(0.16 + Math.abs(diff) * 0.014, 0.12, 0.5)) margin++;
-  if (rng() < clamp(0.05 + Math.abs(diff) * 0.006, 0.04, 0.22)) margin++;
-  const loser = pickWeighted(rng, [[0, 0.5], [1, 0.38], [2, 0.12]]);
-  const winner = Math.min(loser + margin, 6);
-  return outcome === "H"
-    ? { homeGoals: winner, awayGoals: loser }
-    : { homeGoals: loser, awayGoals: winner };
+  return { winner, method: "DEC", round: 0 };
 }

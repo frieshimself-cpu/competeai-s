@@ -3,28 +3,29 @@
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { MODEL_MAP } from "@/lib/models";
-import {
-  bestCalls,
-  computeStandings,
-  cumulativeSeries,
-  POINTS,
-} from "@/lib/scoring";
-import { betFor, fmtMoney, START_BANKROLL } from "@/lib/betting";
-import { team } from "@/lib/teams";
+import { bestCalls, computeStandings, cumulativeSeries, POINTS } from "@/lib/scoring";
+import { betFor, fmtMoney, americanOdds, START_BANKROLL } from "@/lib/betting";
+import { fighter } from "@/lib/fighters";
+import { describePrediction, describeFinish } from "@/lib/engine";
 import { ModelAvatar } from "@/components/ModelAvatar";
 import { FormDots } from "@/components/FormDots";
 import { RaceChart } from "@/components/PointsChart";
-import { fmtKickoff } from "@/components/MatchCard";
+import { fightWhen } from "@/components/FightCard";
 
 export default function LeaderboardPage() {
-  const { hydrated, matches, resultFor, betting } = useStore();
+  const { hydrated, fights, resultFor, betting } = useStore();
   const [view, setView] = useState<"bankroll" | "points">("bankroll");
 
-  if (!hydrated) return <div className="page-pad"><div className="skel">Counting the money…</div></div>;
+  if (!hydrated)
+    return (
+      <div className="page-pad">
+        <div className="skel">Reading the scorecards…</div>
+      </div>
+    );
 
-  const standings = computeStandings(matches, resultFor);
-  const { matches: done, series } = cumulativeSeries(matches, resultFor);
-  const calls = bestCalls(matches, resultFor, 4);
+  const standings = computeStandings(fights, resultFor);
+  const { fights: done, series } = cumulativeSeries(fights, resultFor);
+  const calls = bestCalls(fights, resultFor, 4);
 
   return (
     <div className="page-pad">
@@ -32,8 +33,8 @@ export default function LeaderboardPage() {
       <h1 className="page-title">Leaderboard</h1>
       <p className="page-sub">
         {done.length === 0
-          ? "No results yet. Bankrolls and points fill in as real World Cup results land."
-          : `Scored across ${done.length} completed ${done.length === 1 ? "match" : "matches"}. Exact scorelines pay ${POINTS.exact} points, right goal difference ${POINTS.gd}, right outcome ${POINTS.outcome}. Every pick also carries a cash stake at market odds.`}
+          ? "No results yet — bankrolls and points fill in as real fights are settled."
+          : `Scored across ${done.length} completed ${done.length === 1 ? "fight" : "fights"}. A perfect call (winner + method + round) pays ${POINTS.exact} points, right method ${POINTS.method}, right winner ${POINTS.winner} — and every pick carries a moneyline stake.`}
       </p>
 
       <div className="card table-card" style={{ marginTop: 24 }}>
@@ -45,9 +46,9 @@ export default function LeaderboardPage() {
               <th>P/L</th>
               <th>ROI</th>
               <th>Pts</th>
-              <th>Exact (+5)</th>
-              <th>GD (+3)</th>
-              <th>Outcome (+2)</th>
+              <th>Perfect (+5)</th>
+              <th>Method (+3)</th>
+              <th>Winner (+2)</th>
               <th>Accuracy</th>
               <th>Last 5</th>
             </tr>
@@ -78,8 +79,8 @@ export default function LeaderboardPage() {
                   </td>
                   <td style={{ fontWeight: 800 }}>{s.points}</td>
                   <td>{s.exact}</td>
-                  <td>{s.gd}</td>
-                  <td>{s.outcome}</td>
+                  <td>{s.method}</td>
+                  <td>{s.winner}</td>
                   <td>{s.scored ? `${s.accuracy}%` : "-"}</td>
                   <td>
                     <FormDots last5={s.last5} />
@@ -92,7 +93,7 @@ export default function LeaderboardPage() {
       </div>
       <p className="faint tiny" style={{ marginTop: 8 }}>
         League rank is decided by points. Bankrolls show what each model&apos;s
-        conviction is worth. Everyone bought in for {fmtMoney(START_BANKROLL)}.
+        conviction is worth — everyone bought in for {fmtMoney(START_BANKROLL)}.
       </p>
 
       <h2 className="section-title">
@@ -108,11 +109,11 @@ export default function LeaderboardPage() {
       </h2>
       {view === "bankroll" ? (
         <RaceChart
-          count={betting.settledMatches.length}
+          count={betting.settledFights.length}
           series={betting.bankrollSeries}
           fmt={(v) => fmtMoney(v)}
           baseline={START_BANKROLL}
-          caption="bankroll after each settled match → (kickoff order)"
+          caption="bankroll after each settled fight → (chronological order)"
         />
       ) : (
         <RaceChart
@@ -120,7 +121,7 @@ export default function LeaderboardPage() {
           series={series}
           fmt={(v) => String(Math.round(v))}
           zeroFloor
-          caption="cumulative league points → (kickoff order)"
+          caption="cumulative league points → (chronological order)"
         />
       )}
 
@@ -131,7 +132,7 @@ export default function LeaderboardPage() {
         <div className="grid2">
           {calls.map((c, i) => {
             const meta = MODEL_MAP[c.model];
-            const bet = betFor(betting, c.match.id, c.model);
+            const bet = betFor(betting, c.fight.id, c.model);
             return (
               <div className="card" key={i}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
@@ -147,22 +148,19 @@ export default function LeaderboardPage() {
                   </span>
                 </div>
                 <div className="small">
-                  Predicted{" "}
+                  Called <b>{describePrediction(c.fight, c.prediction)}</b> — it ended{" "}
                   <b>
-                    {team(c.match.home).flag} {c.prediction.homeGoals}-{c.prediction.awayGoals}{" "}
-                    {team(c.match.away).flag}
-                  </b>. It finished{" "}
-                  <b>
-                    {c.result.homeGoals}-{c.result.awayGoals}
+                    {c.result.winner === "D"
+                      ? "in a draw"
+                      : `${fighter(c.result.winner === "R" ? c.fight.red : c.fight.blue).name} ${describeFinish(c.result.method, c.result.round)}`}
                   </b>
                   {bet && bet.status === "won" && (
-                    <> with {fmtMoney(bet.stake)} riding at {bet.odds.toFixed(2)}</>
+                    <> with {fmtMoney(bet.stake)} riding at {americanOdds(bet.odds)}</>
                   )}
                   .
                 </div>
                 <div className="muted small" style={{ marginTop: 6 }}>
-                  {team(c.match.home).name} vs {team(c.match.away).name} ·{" "}
-                  {fmtKickoff(c.match.kickoff)}
+                  {fighter(c.fight.red).name} vs {fighter(c.fight.blue).name} · {fightWhen(c.fight)}
                 </div>
                 <div className="quote-box">“{c.prediction.reasoning}”</div>
               </div>

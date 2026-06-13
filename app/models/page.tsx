@@ -3,9 +3,9 @@
 import { useStore } from "@/lib/store";
 import { MODELS } from "@/lib/models";
 import { computeStandings } from "@/lib/scoring";
-import { predictionFor } from "@/lib/engine";
-import { fmtMoney, pickLabel } from "@/lib/betting";
-import { team } from "@/lib/teams";
+import { predictionFor, describePrediction } from "@/lib/engine";
+import { fmtMoney, americanOdds, cornerName } from "@/lib/betting";
+import { fighter } from "@/lib/fighters";
 import { ModelAvatar } from "@/components/ModelAvatar";
 
 function Trait({ label, value, color }: { label: string; value: number; color: string }) {
@@ -26,23 +26,28 @@ const norm = (v: number, lo: number, hi: number) =>
   Math.max(0.05, Math.min(1, (v - lo) / (hi - lo)));
 
 export default function ModelsPage() {
-  const { hydrated, matches, resultFor, betting } = useStore();
+  const { hydrated, fights, resultFor, betting } = useStore();
 
-  if (!hydrated) return <div className="page-pad"><div className="skel">Introducing the contestants…</div></div>;
+  if (!hydrated)
+    return (
+      <div className="page-pad">
+        <div className="skel">Introducing the cornermen…</div>
+      </div>
+    );
 
-  const standings = computeStandings(matches, resultFor);
-  const nextMatch = matches.find((m) => !resultFor(m.id));
-  const matchById = new Map(matches.map((m) => [m.id, m]));
+  const standings = computeStandings(fights, resultFor);
+  const nextFight = fights.find((f) => !resultFor(f.id));
+  const fightById = new Map(fights.map((f) => [f.id, f]));
 
   return (
     <div className="page-pad">
-      <div className="kicker">Meet the contestants</div>
+      <div className="kicker">Meet the cornermen</div>
       <h1 className="page-title">The Models</h1>
       <p className="page-sub">
-        Same fixtures, same market odds, four very different philosophies,
-        about football and about money. Each persona is a deterministic
-        strategy tuned to how its namesake carries itself, from risk appetite
-        to how hard it hammers the betting window.
+        Same card, same moneyline, four very different philosophies — about
+        fighting and about money. Each persona is a deterministic strategy
+        tuned to how its namesake carries itself, from risk appetite to how
+        hard it hammers the betting window.
       </p>
 
       <div className="model-grid">
@@ -50,9 +55,9 @@ export default function ModelsPage() {
           const s = standings.find((x) => x.model === meta.id)!;
           const w = betting.walletOf[meta.id];
           const rank = standings.indexOf(s) + 1;
-          const take = nextMatch ? predictionFor(nextMatch, meta.id) : null;
+          const take = nextFight ? predictionFor(nextFight, meta.id) : null;
           const bestWin = w.biggestWin;
-          const bestWinMatch = bestWin ? matchById.get(bestWin.matchId) : undefined;
+          const bestWinFight = bestWin ? fightById.get(bestWin.fightId) : undefined;
           return (
             <div className="model-card" key={meta.id}>
               <div
@@ -69,7 +74,10 @@ export default function ModelsPage() {
                 </div>
                 <div style={{ marginLeft: "auto", textAlign: "right" }}>
                   <div style={{ fontSize: 24, fontWeight: 800 }}>{fmtMoney(w.bankroll)}</div>
-                  <div className={`tiny ${w.profit > 0 ? "money-up" : w.profit < 0 ? "money-down" : "faint"}`} style={{ fontWeight: 700 }}>
+                  <div
+                    className={`tiny ${w.profit > 0 ? "money-up" : w.profit < 0 ? "money-down" : "faint"}`}
+                    style={{ fontWeight: 700 }}
+                  >
                     {fmtMoney(w.profit, true)} · #{rank} · {s.points} pts
                   </div>
                 </div>
@@ -92,23 +100,24 @@ export default function ModelsPage() {
                   </b>
                 </span>
               </div>
-              {bestWin && bestWinMatch && (
+              {bestWin && bestWinFight && (
                 <div className="tiny muted" style={{ marginTop: 6 }}>
                   Best cash: <b className="money-up">{fmtMoney(bestWin.profit, true)}</b> on{" "}
-                  {pickLabel(bestWinMatch, bestWin.pick, (c) => team(c).name)} @ {bestWin.odds.toFixed(2)}
+                  {cornerName(bestWinFight, bestWin.pick, (c) => fighter(c).name)} @{" "}
+                  {americanOdds(bestWin.odds)}
                 </div>
               )}
 
               <Trait label="Risk appetite" value={norm(meta.p.upset, 0.7, 1.6)} color={meta.color} />
               <Trait label="Stake aggression" value={norm(meta.betting.kelly, 0.15, 1.8)} color={meta.color} />
-              <Trait label="Draw tolerance" value={norm(meta.p.drawBias, 0.6, 1.4)} color={meta.color} />
-              <Trait label="Home-crowd faith" value={norm(meta.p.hostEdge, 0.6, 1.6)} color={meta.color} />
+              <Trait label="Finish-hunting" value={norm(meta.p.finishLust, 0.7, 1.4)} color={meta.color} />
+              <Trait label="Favourite reverence" value={norm(meta.p.favReverence, 0.7, 1.5)} color={meta.color} />
 
-              {take && nextMatch && (
+              {take && nextFight && (
                 <div className="quote-box">
                   <div className="tiny faint" style={{ fontStyle: "normal", fontWeight: 700, marginBottom: 4 }}>
-                    NEXT CALL: {team(nextMatch.home).name} vs {team(nextMatch.away).name} (
-                    {take.homeGoals}-{take.awayGoals})
+                    NEXT CALL: {fighter(nextFight.red).name} vs {fighter(nextFight.blue).name} —{" "}
+                    {describePrediction(nextFight, take)}
                   </div>
                   “{take.reasoning}”
                 </div>
