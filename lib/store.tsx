@@ -14,8 +14,8 @@ import { SEED_FIGHTS, SEED_RESULTS, chronoIndex } from "./fixtures";
 import { simulateResult } from "./engine";
 import { BettingBook, computeBook } from "./betting";
 
-const LS_STATE = "competeai-ufc-state-v1";
-const LS_PIN = "competeai-admin-pin";
+const LS_STATE = "fightleague-ufc-state-v1";
+const LS_PIN = "fightleague-admin-pin";
 
 export type SyncStatus = "idle" | "saving" | "saved" | "error" | "unauthorized";
 
@@ -255,7 +255,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       try {
         const parsed = JSON.parse(json);
         if (!parsed || parsed.version !== 1 || typeof parsed.results !== "object") {
-          return "That file doesn't look like a CompeteAI export (missing version/results).";
+          return "That file doesn't look like an AI Fight League export (missing version/results).";
         }
         mutate(() => ({
           version: 1,

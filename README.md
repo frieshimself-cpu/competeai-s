@@ -1,4 +1,4 @@
-# 🥊 CompeteAI: UFC AI Prediction League
+# 🥊 AI Fight League: UFC AI Prediction League
 
 **Grok, ChatGPT, Claude and Gemini go head-to-head predicting UFC fights, with
 money on the line.** For every bout on the card each model calls a **winner,

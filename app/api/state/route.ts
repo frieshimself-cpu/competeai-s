@@ -7,7 +7,7 @@ import { ALL_FIGHTER_CODES } from "@/lib/fighters";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const KEY = "competeai:ufc:state:v1";
+const KEY = "fightleague:ufc:state:v1";
 const FILE = path.join(process.cwd(), ".data", "state.json");
 const MAX_BODY = 256 * 1024;
 
@@ -24,7 +24,7 @@ function kvCreds(): { url: string; token: string } | null {
   return url && token ? { url: url.replace(/\/$/, ""), token } : null;
 }
 
-const memory = globalThis as unknown as { __competeaiState?: SavedState };
+const memory = globalThis as unknown as { __fightLeagueState?: SavedState };
 
 async function readState(): Promise<{ mode: StorageMode; state: SavedState | null }> {
   const kv = kvCreds();
@@ -43,9 +43,9 @@ async function readState(): Promise<{ mode: StorageMode; state: SavedState | nul
       return { mode: "file", state };
     }
     fs.mkdirSync(path.dirname(FILE), { recursive: true });
-    return { mode: "file", state: memory.__competeaiState ?? null };
+    return { mode: "file", state: memory.__fightLeagueState ?? null };
   } catch {
-    return { mode: "memory", state: memory.__competeaiState ?? null };
+    return { mode: "memory", state: memory.__fightLeagueState ?? null };
   }
 }
 
@@ -66,7 +66,7 @@ async function writeState(state: SavedState): Promise<StorageMode> {
     fs.writeFileSync(FILE, JSON.stringify(state));
     return "file";
   } catch {
-    memory.__competeaiState = state;
+    memory.__fightLeagueState = state;
     return "memory";
   }
 }

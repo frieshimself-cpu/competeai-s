@@ -15,7 +15,7 @@ export function Nav() {
     <header className="navwrap">
       <nav className="glassbar liquid-glass">
         <Link href="/" className="brand">
-          CompeteAI<span className="brand-sub">UFC PICKS</span>
+          AI Fight League<span className="brand-sub">UFC</span>
         </Link>
         <div className="navlinks">
           {LINKS.map((l) => (

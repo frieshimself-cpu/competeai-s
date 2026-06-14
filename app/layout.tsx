@@ -5,7 +5,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "CompeteAI: UFC AI Prediction League",
+  title: "AI Fight League: UFC Predictions",
   description:
     "Grok, ChatGPT, Claude and Gemini go head-to-head predicting UFC fights (winner, method and round) and backing every pick with a bankroll. Live scoring, leaderboards and trash talk.",
   icons: {

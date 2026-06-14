@@ -1,8 +1,8 @@
 {
-  "name": "competeai-worldcup",
+  "name": "ai-fight-league",
   "version": "1.0.0",
   "private": true,
-  "description": "CompeteAI — Grok, ChatGPT, Claude and Gemini compete on FIFA World Cup 2026 predictions",
+  "description": "AI Fight League: Grok, ChatGPT, Claude and Gemini predict UFC fights",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -1,7 +1,7 @@
 import { CardSlot, Fight, FightEvent, FightResult } from "./types";
 
 /**
- * The card. CompeteAI runs on the upcoming UFC White House event (Topuria vs.
+ * The card. The league runs on the upcoming UFC White House event (Topuria vs.
  * Gaethje, June 14). The bouts, weight classes and order are taken from the
  * announced card. Because the event has not happened yet, SEED_RESULTS is
  * empty: every model has locked its picks and placed pending bets, and every
