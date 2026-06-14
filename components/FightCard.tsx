@@ -60,7 +60,7 @@ export function FightCard({
         <span>{fight.weightClass}</span>
         {fight.title && <span className="pill belt">🏆 Title</span>}
         <span>· {fight.rounds} rounds</span>
-        <span className="pill odds" title={`Moneyline — ${red.name} / ${blue.name}`}>
+        <span className="pill odds" title={`Moneyline: ${red.name} / ${blue.name}`}>
           {red.short} {americanOdds(odds.R)} · {blue.short} {americanOdds(odds.B)}
         </span>
         {result ? (

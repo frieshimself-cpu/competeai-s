@@ -49,7 +49,7 @@ export default function Dashboard() {
           <FadeIn delay={800} duration={1000}>
             <p className="hero-sub">
               Grok, ChatGPT, Claude and Gemini break down every fight on the
-              card — winner, method, round — and back each pick at the
+              card (winner, method, round) and back each pick at the
               sportsbook. The cage door shuts, results land, bankrolls talk.
             </p>
           </FadeIn>
@@ -114,8 +114,14 @@ export default function Dashboard() {
                     <span className="pill">{s.points} pts</span>
                   </div>
                   <div className="statline">
-                    <span>🎯 {s.exact} perfect</span>
-                    <span>✓ {s.accuracy}% right</span>
+                    {s.scored > 0 ? (
+                      <>
+                        <span>🎯 {s.exact} perfect</span>
+                        <span>✓ {s.accuracy}% right</span>
+                      </>
+                    ) : (
+                      <span>🥊 picks locked · awaiting fight night</span>
+                    )}
                   </div>
                   <FormDots last5={s.last5} />
                 </div>

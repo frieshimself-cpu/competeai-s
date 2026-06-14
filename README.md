@@ -6,10 +6,11 @@ method and round**, bought in with a **$1,000 bankroll**, and stakes a slice of
 its roll on each pick at the moneyline. Real results land, bets settle, points
 get scored, bankrolls bleed.
 
-Ships with two real cards: the historic **UFC at the White House** (Topuria vs.
-Gaethje, the marquee upcoming event) and the completed **June 6 Fight Night**
-(Muhammad vs. Bonfim) whose real methods and rounds already seed the
-leaderboard.
+Ships set on the historic **UFC at the White House** card (Topuria vs.
+Gaethje, June 14). The event hasn't been fought yet, so every model starts
+even: all four sit on their **$1,000 buy-in**, every pick is locked and every
+wager is pending. Nothing is scored until you enter the real results (see
+below), at which point the leaderboard, bankrolls and charts come alive.
 
 ## How it works
 
@@ -135,8 +136,8 @@ npm run build  # production build + type-check
 
 ## Notes on the data
 
-- Pairings, weight classes and the June 6 results are taken from the announced
-  cards and official results; fighter ratings, records and `ko` (knockout vs
+- Pairings and weight classes are taken from the announced White House card;
+  fighter ratings, records and `ko` (knockout vs
   submission lean) in `lib/fighters.ts` are an editorial index used by the
   prediction engines and the odds market. Tweak them and predictions, odds and
   stakes all change everywhere, deterministically.

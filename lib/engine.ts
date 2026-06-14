@@ -86,7 +86,7 @@ function pickRound(rng: () => number, maxRounds: number, finishLust: number): nu
 }
 
 /* ──────────────────────────────────────────────────────────────
- * Reasoning generators — each model has its own voice.
+ * Reasoning generators. Each model has its own voice.
  * ────────────────────────────────────────────────────────────── */
 
 interface Ctx {
@@ -117,13 +117,13 @@ const CHATGPT_LINES: Tpl[] = [
   (c) => `Weighing form, output and durability, ${c.pick} is the sensible call ${c.how}. The matchup reads ${c.gap}.`,
   (c) => `On balance ${c.fav} carries the cleaner profile, so ${c.pick} ${c.how}, with roughly ${c.conf}% conviction.`,
   (c) => `Several lanes point the same way at ${c.weight}: ${c.pick} ${c.how} is where the evidence lands.`,
-  (c) => `A measured read — ${c.red} vs ${c.blue} is ${c.gap}. I'll take ${c.pick} ${c.how}.`,
+  (c) => `A measured read: ${c.red} vs ${c.blue} is ${c.gap}. I'll take ${c.pick} ${c.how}.`,
   (c) => `Volume and ring IQ favour one side here. ${c.pick} ${c.how}; happy to be wrong, that's MMA.`,
   (c) => `Consensus isn't a dirty word when it's usually right. ${c.pick} ${c.how}.`,
 ];
 
 const CLAUDE_LINES: Tpl[] = [
-  (c) => `I weighed ${c.red}'s pressure against ${c.blue}'s counters. It's ${c.gap}, so ${c.pick} ${c.how} — held loosely.`,
+  (c) => `I weighed ${c.red}'s pressure against ${c.blue}'s counters. It's ${c.gap}, so ${c.pick} ${c.how}, held loosely.`,
   (c) => `Honestly the variance here is high. On reflection, ${c.pick} ${c.how} is my best estimate, around ${c.conf}%.`,
   (c) => `Championship rounds reward cardio and composure, which tilts me to ${c.pick} ${c.how}. I could see it going the other way.`,
   (c) => `There's a real case for both fighters, and I want to be fair to it. Net of everything: ${c.pick} ${c.how}.`,
@@ -135,7 +135,7 @@ const GEMINI_LINES: Tpl[] = [
   (c) => `Ran the tale of the tape 10,000 times; ${c.pick} prevails in ${c.conf}% of them, ${c.how}.`,
   (c) => `Significant-strike differential and takedown defence converge on ${c.pick} ${c.how}. Methodology on request.`,
   (c) => `My priors said ${c.fav}; the model agreed. ${c.pick} ${c.how}.`,
-  (c) => `Adjusting for title-fight pedigree — undervalued by my peers — the projection is ${c.pick} ${c.how}.`,
+  (c) => `Adjusting for title-fight pedigree (undervalued by my peers), the projection is ${c.pick} ${c.how}.`,
   (c) => `The matchup matrix rates this ${c.gap}. Monte Carlo says ${c.pick} ${c.how}, and I don't argue with it.`,
   (c) => `${c.dog}'s underlying numbers beat their reputation, but not by enough. ${c.pick} ${c.how}.`,
 ];

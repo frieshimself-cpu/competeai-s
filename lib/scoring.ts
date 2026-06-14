@@ -6,10 +6,10 @@ import { chronoIndex } from "./fixtures";
 
 /**
  * Scoring (UFC prediction league):
- *   5 pts — winner + method + round (or winner + decision; a decision has no round)
- *   3 pts — winner + method, wrong round
- *   2 pts — winner only
- *   0 pts — wrong winner
+ *   5 pts - winner + method + round (or winner + decision; a decision has no round)
+ *   3 pts - winner + method, wrong round
+ *   2 pts - winner only
+ *   0 pts - wrong winner
  */
 export const POINTS = { exact: 5, method: 3, winner: 2 } as const;
 

@@ -100,7 +100,7 @@ export const MODELS: ModelMeta[] = [
     color2: "#9168c0",
     tagline: "Significant strikes don't lie.",
     strategy:
-      "Gemini runs the tale of the tape through a model: significant-strike differentials, takedown defence, finish rates, and its favourite input — title-fight pedigree, which it weights more than anyone. Chalk-leaning and proudly so.",
+      "Gemini runs the tale of the tape through a model: significant-strike differentials, takedown defence, finish rates, and its favourite input, title-fight pedigree, which it weights more than anyone. Chalk-leaning and proudly so.",
     p: { upset: 0.95, decisionBias: 0.95, finishLust: 1.06, favReverence: 1.4, confShift: 3 },
     betting: {
       kelly: 0.85,

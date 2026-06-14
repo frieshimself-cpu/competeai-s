@@ -33,8 +33,8 @@ export default function LeaderboardPage() {
       <h1 className="page-title">Leaderboard</h1>
       <p className="page-sub">
         {done.length === 0
-          ? "No results yet — bankrolls and points fill in as real fights are settled."
-          : `Scored across ${done.length} completed ${done.length === 1 ? "fight" : "fights"}. A perfect call (winner + method + round) pays ${POINTS.exact} points, right method ${POINTS.method}, right winner ${POINTS.winner} — and every pick carries a moneyline stake.`}
+          ? "No fights scored yet. Every model is at its $1,000 buy-in until the card plays out."
+          : `Scored across ${done.length} completed ${done.length === 1 ? "fight" : "fights"}. A perfect call (winner + method + round) pays ${POINTS.exact} points, right method ${POINTS.method}, right winner ${POINTS.winner}. Every pick also carries a moneyline stake.`}
       </p>
 
       <div className="card table-card" style={{ marginTop: 24 }}>
@@ -93,7 +93,7 @@ export default function LeaderboardPage() {
       </div>
       <p className="faint tiny" style={{ marginTop: 8 }}>
         League rank is decided by points. Bankrolls show what each model&apos;s
-        conviction is worth — everyone bought in for {fmtMoney(START_BANKROLL)}.
+        conviction is worth. Everyone bought in for {fmtMoney(START_BANKROLL)}.
       </p>
 
       <h2 className="section-title">
@@ -148,7 +148,7 @@ export default function LeaderboardPage() {
                   </span>
                 </div>
                 <div className="small">
-                  Called <b>{describePrediction(c.fight, c.prediction)}</b> — it ended{" "}
+                  Called <b>{describePrediction(c.fight, c.prediction)}</b>, and it ended{" "}
                   <b>
                     {c.result.winner === "D"
                       ? "in a draw"

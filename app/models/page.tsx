@@ -44,7 +44,7 @@ export default function ModelsPage() {
       <div className="kicker">Meet the cornermen</div>
       <h1 className="page-title">The Models</h1>
       <p className="page-sub">
-        Same card, same moneyline, four very different philosophies — about
+        Same card, same moneyline, four very different philosophies, about
         fighting and about money. Each persona is a deterministic strategy
         tuned to how its namesake carries itself, from risk appetite to how
         hard it hammers the betting window.
@@ -116,7 +116,7 @@ export default function ModelsPage() {
               {take && nextFight && (
                 <div className="quote-box">
                   <div className="tiny faint" style={{ fontStyle: "normal", fontWeight: 700, marginBottom: 4 }}>
-                    NEXT CALL: {fighter(nextFight.red).name} vs {fighter(nextFight.blue).name} —{" "}
+                    NEXT CALL: {fighter(nextFight.red).name} vs {fighter(nextFight.blue).name}:{" "}
                     {describePrediction(nextFight, take)}
                   </div>
                   “{take.reasoning}”

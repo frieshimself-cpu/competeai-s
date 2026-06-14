@@ -72,7 +72,7 @@ async function writeState(state: SavedState): Promise<StorageMode> {
 }
 
 /* ──────────────────────────────────────────────────────────────
- * Validation — rebuild from scratch rather than trust the wire shape.
+ * Validation: rebuild from scratch rather than trust the wire shape.
  * ────────────────────────────────────────────────────────────── */
 
 const OUTCOMES = new Set<FightOutcome>(["R", "B", "D"]);
