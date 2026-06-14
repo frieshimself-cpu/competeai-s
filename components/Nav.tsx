@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ContractBar } from "./ContractBar";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
@@ -24,9 +25,12 @@ export function Nav() {
             </Link>
           ))}
         </div>
-        <Link href="/leaderboard" className="btn-primary nav-cta">
-          Leaderboard
-        </Link>
+        <div className="nav-right">
+          <ContractBar variant="nav" />
+          <Link href="/leaderboard" className="btn-primary nav-cta">
+            Leaderboard
+          </Link>
+        </div>
       </nav>
     </header>
   );

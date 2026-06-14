@@ -157,6 +157,49 @@ h1, h2, h3, h4 {
   z-index: 1;
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* compact CA copy button in the nav (every page) */
+.ca-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  padding: 7px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ca-nav:hover { background: rgba(255, 255, 255, 0.12); }
+.ca-nav.copied { border-color: rgba(45, 212, 167, 0.6); color: var(--green); }
+
+.ca-nav-label {
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  font-weight: 800;
+}
+
+.ca-nav.copied .ca-nav-label { color: var(--green); }
+.ca-nav-addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+@media (max-width: 560px) {
+  .ca-nav-addr { display: none; }
+}
+
 @media (max-width: 700px) {
   .brand { font-size: 16px; }
   .brand-sub { display: none; }
@@ -316,6 +359,81 @@ h1, h2, h3, h4 {
   position: relative;
   z-index: 1;
 }
+
+/* prominent CA copy bar in the hero */
+.hero-ca {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.ca-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.ca-hero .ca-label {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ca-hero .ca-addr {
+  position: relative;
+  z-index: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(11px, 1.6vw, 14px);
+  letter-spacing: 0.01em;
+  word-break: break-all;
+  text-align: left;
+}
+
+.ca-hero .ca-copy {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+.ca-hero.copied .ca-copy { background: rgba(45, 212, 167, 0.25); color: var(--green); }
+
+/* footer CA line */
+.ca-foot {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+.ca-foot:hover { border-color: var(--border-2); }
+.ca-foot code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); word-break: break-all; }
+.ca-foot .ca-label { font-weight: 800; letter-spacing: 0.14em; color: var(--faint); }
+.ca-foot.copied { border-color: rgba(45, 212, 167, 0.5); color: var(--green); }
+.ca-foot.copied code { color: var(--green); }
 
 /* ───────────────────── shared ───────────────────── */
 

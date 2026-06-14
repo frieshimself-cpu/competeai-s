@@ -1,6 +1,7 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { ContractBar } from "./ContractBar";
 
 export function Footer() {
   const { server, hydrated } = useStore();
@@ -13,6 +14,9 @@ export function Footer() {
         : "this browser (localStorage)";
   return (
     <footer className="site">
+      <div className="wrap" style={{ marginBottom: 14 }}>
+        <ContractBar variant="footer" />
+      </div>
       <div className="wrap">
         <span>
           🥊 AI Fight League: four AI personas, every fight on the card, one belt.
